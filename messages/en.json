@@ -14,6 +14,23 @@
     "menu": "Menu",
     "language": "Language"
   },
+  "catalog": {
+    "title": "Collection",
+    "subtitle": "Curated pieces for a serene home.",
+    "resultsFor": "Results for “{query}”",
+    "emptyTitle": "New pieces soon",
+    "emptyBody": "We're preparing the collection. Check back in a few days.",
+    "noResultsTitle": "No results for “{query}”",
+    "noResultsBody": "Try another word or check the spelling.",
+    "clearSearch": "View the whole collection",
+    "errorTitle": "We couldn't load the collection",
+    "errorBody": "A temporary problem occurred. Please try again in a moment.",
+    "retry": "Try again"
+  },
+  "search": {
+    "label": "Search products",
+    "placeholder": "Search"
+  },
   "hero": {
     "tagline": "The balance between vision and design.",
     "sub": "Scandinavian-Mediterranean home decor, curated piece by piece for a serene and elegant life."

@@ -14,6 +14,23 @@
     "menu": "Menú",
     "language": "Idioma"
   },
+  "catalog": {
+    "title": "Colección",
+    "subtitle": "Piezas curadas para un hogar sereno.",
+    "resultsFor": "Resultados para «{query}»",
+    "emptyTitle": "Pronto, nuevas piezas",
+    "emptyBody": "Estamos preparando la colección. Vuelve en unos días.",
+    "noResultsTitle": "Sin resultados para «{query}»",
+    "noResultsBody": "Prueba con otra palabra o revisa la ortografía.",
+    "clearSearch": "Ver toda la colección",
+    "errorTitle": "No hemos podido cargar la colección",
+    "errorBody": "Ha ocurrido un problema temporal. Inténtalo de nuevo en unos instantes.",
+    "retry": "Reintentar"
+  },
+  "search": {
+    "label": "Buscar productos",
+    "placeholder": "Buscar"
+  },
   "hero": {
     "tagline": "El equilibrio entre visión y diseño.",
     "sub": "Decoración de hogar escandinavo-mediterránea, curada pieza a pieza para una vida serena y elegante."

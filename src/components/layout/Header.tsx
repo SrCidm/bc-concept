@@ -19,12 +19,15 @@ export async function Header() {
 
   const cartLabel = tCommon("cart", { count: 0 });
   const menuLabel = tCommon("menu");
+  const tSearch = await getTranslations("search");
 
   return (
     <HeaderClient
       navItems={navItems}
       cartLabel={cartLabel}
       menuLabel={menuLabel}
+      searchLabel={tSearch("label")}
+      searchPlaceholder={tSearch("placeholder")}
     />
   );
 }

@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, Suspense } from "react";
 import { Link } from "@/i18n/navigation";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+import { SearchBox } from "@/components/layout/SearchBox";
 
 interface NavItem {
   label: string;
@@ -13,6 +14,8 @@ interface HeaderClientProps {
   navItems: NavItem[];
   cartLabel: string;
   menuLabel: string;
+  searchLabel: string;
+  searchPlaceholder: string;
 }
 
 function CartIcon() {
@@ -70,7 +73,13 @@ function HamburgerIcon({ open }: { open: boolean }) {
  * Handles scroll-based styling and accessible mobile menu.
  * Receives pre-translated strings from the Server Component (Header.tsx).
  */
-export function HeaderClient({ navItems, cartLabel, menuLabel }: HeaderClientProps) {
+export function HeaderClient({
+  navItems,
+  cartLabel,
+  menuLabel,
+  searchLabel,
+  searchPlaceholder,
+}: HeaderClientProps) {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -161,6 +170,15 @@ export function HeaderClient({ navItems, cartLabel, menuLabel }: HeaderClientPro
 
         {/* Right side controls */}
         <div className="flex items-center gap-3">
+          {/* Search — desktop */}
+          <Suspense fallback={null}>
+            <SearchBox
+              label={searchLabel}
+              placeholder={searchPlaceholder}
+              className="hidden md:flex w-44 lg:w-56"
+            />
+          </Suspense>
+
           <LanguageSwitcher />
 
           {/* Cart — desktop */}
@@ -209,6 +227,15 @@ export function HeaderClient({ navItems, cartLabel, menuLabel }: HeaderClientPro
             "py-6 px-[clamp(1.25rem,4vw,2.5rem)]"
           }
         >
+          <Suspense fallback={null}>
+            <SearchBox
+              label={searchLabel}
+              placeholder={searchPlaceholder}
+              className="mb-4"
+              onSubmitted={() => setMenuOpen(false)}
+            />
+          </Suspense>
+
           <nav className="flex flex-col gap-1" aria-label="Menú móvil">
             {navItems.map((item) => (
               <Link
