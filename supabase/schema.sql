@@ -8,6 +8,8 @@
 --   · Leak cerrado: GRANT por columna en products/variants → price_cost inaccesible
 --   · order_number, retry_count, supplier_error, title_snapshot (idempotencia)
 --   · Trigger updated_at automático en products, orders, supplier_credentials
+-- Sincronizado con la BD real (ngctedqwmofhdvjowgva) tras las migraciones
+-- v2.2 (catálogo + búsqueda), v2.3 (grants de escritura) y v2.4 (funciones).
 -- ============================================================================
 
 -- ----------------------------------------------------------------------------
@@ -149,6 +151,11 @@ CREATE POLICY "public reads active products"
   ON products FOR SELECT TO anon, authenticated
   USING (status = 'active');
 -- price_cost / cost_currency / supplier_product_id NO están en el GRANT → inaccesibles.
+-- Los default privileges de Supabase dan a anon/authenticated escritura total en
+-- tablas nuevas; RLS frena INSERT/UPDATE/DELETE pero NO TRUNCATE → se retira (v2.3).
+-- El REVOKE a nivel tabla retira también los privilegios por columna.
+REVOKE INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER
+  ON products, product_variants FROM anon, authenticated;
 
 -- 6.2 VARIANTS: oculta price_cost y supplier_variant_id.
 REVOKE SELECT ON product_variants FROM anon, authenticated;
@@ -169,6 +176,76 @@ CREATE INDEX idx_products_category ON products (category);
 CREATE INDEX idx_variants_product  ON product_variants (product_id);
 CREATE INDEX idx_orders_status     ON orders (status);
 CREATE INDEX idx_order_items_order ON order_items (order_id);
+
+-- ============================================================================
+-- 7.5 CATÁLOGO PÚBLICO Y BÚSQUEDA (migration_v2_2_catalog.sql)
+-- ============================================================================
+CREATE EXTENSION IF NOT EXISTS pg_trgm  WITH SCHEMA extensions;
+CREATE EXTENSION IF NOT EXISTS unaccent WITH SCHEMA extensions;
+
+-- unaccent inmutable (indexable) + índice trigram sobre el título normalizado
+CREATE OR REPLACE FUNCTION public.bc_unaccent(text)
+RETURNS text
+LANGUAGE sql IMMUTABLE PARALLEL SAFE STRICT
+SET search_path = extensions, public
+AS $$ SELECT extensions.unaccent('extensions.unaccent', $1) $$;
+
+CREATE INDEX idx_products_title_trgm
+  ON products USING gin (public.bc_unaccent(lower(title)) extensions.gin_trgm_ops);
+
+-- Vista pública: SOLO columnas seguras y SOLO productos activos.
+-- (sin price_cost, cost_currency, supplier, supplier_product_id, weight, status)
+CREATE VIEW products_public
+WITH (security_invoker = true) AS
+SELECT id, slug, title, description, price_retail, currency, images, category,
+       inventory, warehouse, delivery_min_days, delivery_max_days, created_at
+FROM products
+WHERE status = 'active';
+
+REVOKE ALL ON products_public FROM anon, authenticated;
+GRANT  SELECT ON products_public TO anon, authenticated;
+
+-- Búsqueda: subcadena sin tildes O similitud trigram (erratas). SECURITY INVOKER.
+CREATE FUNCTION public.search_products_public(q text, max_rows int DEFAULT 24)
+RETURNS SETOF public.products_public
+LANGUAGE sql STABLE SECURITY INVOKER
+SET search_path = extensions, public
+AS $$
+  WITH n AS (
+    SELECT public.bc_unaccent(lower(btrim(q))) AS term,
+           replace(replace(public.bc_unaccent(lower(btrim(q))), '%', ''), '_', '') AS lit
+  )
+  SELECT p.*
+  FROM public.products_public p, n
+  WHERE length(n.lit) > 0
+    AND (
+      public.bc_unaccent(lower(p.title)) ILIKE '%' || n.lit || '%'
+      OR public.bc_unaccent(lower(coalesce(p.category, ''))) ILIKE '%' || n.lit || '%'
+      OR extensions.word_similarity(n.term, public.bc_unaccent(lower(p.title))) > 0.4
+    )
+  ORDER BY extensions.word_similarity(n.term, public.bc_unaccent(lower(p.title))) DESC,
+           p.created_at DESC
+  LIMIT least(greatest(max_rows, 1), 48)
+$$;
+
+REVOKE ALL ON FUNCTION public.search_products_public(text, int) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.search_products_public(text, int) TO anon, authenticated;
+
+-- ----------------------------------------------------------------------------
+-- 7.6 Endurecimiento de funciones (migration_v2_4_function_hardening.sql)
+--     · set_updated_at con search_path vacío.
+--     · rls_auto_enable() (helper de Supabase para el event trigger ensure_rls)
+--       no debe ser invocable por la API: se revoca de PUBLIC/anon/authenticated.
+--       Solo existe en proyectos con "auto-enable RLS"; se omite si no está.
+-- ----------------------------------------------------------------------------
+ALTER FUNCTION set_updated_at() SET search_path = '';
+
+DO $$
+BEGIN
+  IF to_regprocedure('public.rls_auto_enable()') IS NOT NULL THEN
+    REVOKE EXECUTE ON FUNCTION public.rls_auto_enable() FROM PUBLIC, anon, authenticated;
+  END IF;
+END $$;
 
 -- ----------------------------------------------------------------------------
 -- 8. Recargar la cache de PostgREST para que la API vea el nuevo esquema

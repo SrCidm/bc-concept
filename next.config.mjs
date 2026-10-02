@@ -10,6 +10,8 @@ const nextConfig = {
     remotePatterns: [
       { protocol: "https", hostname: "cdn.bigbuy.eu" },
       { protocol: "https", hostname: "cf.cjdropshipping.com" },
+      // Placeholders de los productos de prueba (TEST-*). Quitar al borrarlos.
+      { protocol: "https", hostname: "placehold.co" },
     ],
   },
 };
