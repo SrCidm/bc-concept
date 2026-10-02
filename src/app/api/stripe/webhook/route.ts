@@ -3,7 +3,7 @@ import Stripe from 'stripe';
 
 // Inicializar Stripe con la clave secreta
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string, {
-  apiVersion: '2024-04-10',
+  apiVersion: '2026-04-22.dahlia',
 });
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET as string;
@@ -18,9 +18,10 @@ export async function POST(req: Request) {
     try {
       // Validar la firma criptográfica de Stripe
       event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
-    } catch (err: any) {
-      console.error(`❌ Validación de firma Stripe falló: ${err.message}`);
-      return NextResponse.json({ error: `Webhook Error: ${err.message}` }, { status: 400 });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      console.error(`❌ Validación de firma Stripe falló: ${message}`);
+      return NextResponse.json({ error: `Webhook Error: ${message}` }, { status: 400 });
     }
 
     // Manejar el evento
@@ -39,8 +40,9 @@ export async function POST(req: Request) {
     }
 
     return NextResponse.json({ received: true }, { status: 200 });
-  } catch (error: any) {
-    console.error(`❌ Error general en webhook de Stripe: ${error.message}`);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error(`❌ Error general en webhook de Stripe: ${message}`);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }

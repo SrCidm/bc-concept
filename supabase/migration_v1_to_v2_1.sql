@@ -1,14 +1,25 @@
 -- ============================================================================
--- B&C: Concept — Schema v2  (fuente de verdad del repo)
+-- B&C: Concept — MIGRACIÓN v1 → v2  (script ejecutable en Supabase SQL editor)
 -- ----------------------------------------------------------------------------
--- Generado desde: migration_v1_to_v2_1.sql (bloques 0.5 en adelante)
--- Cambios principales vs v1:
---   · Proveedor-agnóstico: supplier + supplier_product/variant/order_id
---   · cj_tokens → supplier_credentials (api_key + tokens nullable)
---   · Leak cerrado: GRANT por columna en products/variants → price_cost inaccesible
---   · order_number, retry_count, supplier_error, title_snapshot (idempotencia)
---   · Trigger updated_at automático en products, orders, supplier_credentials
+-- USO: pre-lanzamiento, SIN datos reales que conservar. Es un RESET.
+-- Si ya tuvieras pedidos/productos reales, NO ejecutes el bloque 0 (DROP):
+-- habría que hacer una migración incremental con ALTER en su lugar.
+--
+-- CANÓNICO: el cuerpo (bloques 0.5 en adelante) debe quedar también como
+-- contenido de supabase/schema.sql (la fuente de verdad del repo).
 -- ============================================================================
+
+-- ----------------------------------------------------------------------------
+-- 0. RESET v1 (destructivo — solo pre-lanzamiento)
+-- ----------------------------------------------------------------------------
+DROP VIEW     IF EXISTS products_public      CASCADE;
+DROP TABLE    IF EXISTS order_items          CASCADE;
+DROP TABLE    IF EXISTS orders               CASCADE;
+DROP TABLE    IF EXISTS product_variants     CASCADE;
+DROP TABLE    IF EXISTS products             CASCADE;
+DROP TABLE    IF EXISTS cj_tokens            CASCADE;
+DROP TABLE    IF EXISTS supplier_credentials CASCADE;
+DROP SEQUENCE IF EXISTS order_number_seq;
 
 -- ----------------------------------------------------------------------------
 -- 0.5 Utilidad: trigger updated_at

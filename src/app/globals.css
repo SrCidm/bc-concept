@@ -2,28 +2,58 @@
 @tailwind components;
 @tailwind utilities;
 
+/**
+ * B&C: Concept — globals
+ * Variables CSS espejo de los tokens de Tailwind (paleta salvia/oliva).
+ */
 :root {
-  --background: #F5F5F0;
-  --foreground: #1A1A1A;
+  --bc-bg-base: #f5f5f0;
+  --bc-surface: #ffffff;
+  --bc-text-primary: #161708;
+  --bc-text-secondary: #6b6b6b;
+  --bc-primary: #94977f;
+  --bc-accent: #40422d;
+  --bc-border: #e5e5e0;
+
+  --background: var(--bc-bg-base);
+  --foreground: var(--bc-text-primary);
 }
 
-body {
-  color: var(--foreground);
-  background: var(--background);
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
-/* GSAP Optimization */
-.will-change-transform {
-  will-change: transform;
-}
-.will-change-opacity {
-  will-change: opacity;
-}
-
-@layer utilities {
-  .text-balance {
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+  body {
+    background: var(--bc-bg-base);
+    color: var(--bc-text-primary);
+    font-family: var(--font-inter), system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  h1, h2, h3 {
+    font-family: var(--font-playfair), Georgia, serif;
     text-wrap: balance;
   }
+  p {
+    text-wrap: pretty;
+  }
+  ::selection {
+    background: var(--bc-primary);
+    color: #fff;
+  }
+  /* Evita FOUC en elementos animados por GSAP */
+  .gsap-init {
+    opacity: 0;
+  }
+}
+
+/* Reduced motion: sin animaciones, contenido siempre visible */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+  .gsap-init { opacity: 1 !important; }
 }

@@ -1,0 +1,53 @@
+{
+  "nav": {
+    "home": "Home",
+    "collection": "Collection",
+    "about": "About us",
+    "contact": "Contact"
+  },
+  "common": {
+    "cart": "Cart ({count})",
+    "cta": "Explore the collection",
+    "delivery": "Estimated delivery 3-7 business days",
+    "deliveryShort": "Delivery 3-7 days",
+    "deliveryRange": "Delivery {min}-{max} days",
+    "menu": "Menu",
+    "language": "Language"
+  },
+  "hero": {
+    "tagline": "The balance between vision and design.",
+    "sub": "Scandinavian-Mediterranean home decor, curated piece by piece for a serene and elegant life."
+  },
+  "system": {
+    "title": "A serene system, built with intention.",
+    "sub": "Every component shares the same palette and type — just enough for the product to breathe.",
+    "buttons": "Buttons",
+    "secondary": "View details",
+    "ghost": "Learn more →",
+    "palette": "Palette",
+    "badge": "Delivery"
+  },
+  "product": {
+    "sampleCategory": "Lighting",
+    "sampleName": "Lumen Lamp"
+  },
+  "footer": {
+    "brand": "Curated home decor for a home that reflects peace, not ostentation.",
+    "shop": "Shop",
+    "all": "All the collection",
+    "lighting": "Lighting",
+    "textiles": "Textiles",
+    "deco": "Decor",
+    "info": "Information",
+    "about": "About us",
+    "shipping": "Shipping & delivery",
+    "contact": "Contact",
+    "legal": "Legal",
+    "terms": "Legal notice",
+    "privacy": "Privacy",
+    "cookies": "Cookies",
+    "returns": "Returns (14 days)",
+    "copyright": "© 2026 Ben & Cid Concept",
+    "made": "Made with criteria in Spain"
+  }
+}

@@ -1,0 +1,53 @@
+{
+  "nav": {
+    "home": "Inicio",
+    "collection": "Colección",
+    "about": "Sobre nosotros",
+    "contact": "Contacto"
+  },
+  "common": {
+    "cart": "Carrito ({count})",
+    "cta": "Explorar colección",
+    "delivery": "Entrega estimada 3-7 días laborables",
+    "deliveryShort": "Entrega 3-7 días",
+    "deliveryRange": "Entrega {min}-{max} días",
+    "menu": "Menú",
+    "language": "Idioma"
+  },
+  "hero": {
+    "tagline": "El equilibrio entre visión y diseño.",
+    "sub": "Decoración de hogar escandinavo-mediterránea, curada pieza a pieza para una vida serena y elegante."
+  },
+  "system": {
+    "title": "Un sistema sereno, construido con intención.",
+    "sub": "Cada componente parte de la misma paleta y tipografía: lo justo para que el producto respire.",
+    "buttons": "Botones",
+    "secondary": "Ver detalles",
+    "ghost": "Saber más →",
+    "palette": "Paleta",
+    "badge": "Entrega"
+  },
+  "product": {
+    "sampleCategory": "Iluminación",
+    "sampleName": "Lámpara Lumen"
+  },
+  "footer": {
+    "brand": "Decoración de hogar curada para un hogar que refleje paz, no ostentación.",
+    "shop": "Tienda",
+    "all": "Toda la colección",
+    "lighting": "Iluminación",
+    "textiles": "Textiles",
+    "deco": "Decoración",
+    "info": "Información",
+    "about": "Sobre nosotros",
+    "shipping": "Envíos y entregas",
+    "contact": "Contacto",
+    "legal": "Legal",
+    "terms": "Aviso legal",
+    "privacy": "Privacidad",
+    "cookies": "Cookies",
+    "returns": "Devoluciones (14 días)",
+    "copyright": "© 2026 Ben & Cid Concept",
+    "made": "Hecho con criterio en España"
+  }
+}

@@ -3,58 +3,100 @@
 import { useRef } from "react";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
-import Link from "next/link";
+import { useTranslations } from "next-intl";
+import { Button } from "@/components/ui/Button";
 
+// Register GSAP React plugin once at module level
+gsap.registerPlugin(useGSAP);
+
+/**
+ * Hero — Client Component (GSAP requires browser APIs).
+ * Layout: tagline (italic) · H1 · sub · CTA
+ * Two very faint rings (bc-primary, opacity-[0.08]) provide depth without glassmorphism.
+ * GSAP fade-up with gsap.matchMedia():
+ *   · no-preference → y:22→0, opacity:0→1, stagger 0.12s
+ *   · reduce         → instant (CSS .gsap-init { opacity:1 !important } handles it)
+ */
 export function Hero() {
   const containerRef = useRef<HTMLDivElement>(null);
 
-  useGSAP(() => {
-    const tl = gsap.timeline();
+  useGSAP(
+    () => {
+      const mm = gsap.matchMedia();
 
-    tl.to(".hero-text", {
-      y: 0,
-      opacity: 1,
-      duration: 1,
-      stagger: 0.2,
-      ease: "power3.out",
-    }).to(
-      ".hero-button",
-      {
-        y: 0,
-        opacity: 1,
-        duration: 0.8,
-        ease: "power2.out",
-      },
-      "-=0.5"
-    );
-  }, { scope: containerRef, dependencies: [] });
+      mm.add("(prefers-reduced-motion: no-preference)", () => {
+        gsap.fromTo(
+          ".hero-item",
+          { y: 22, opacity: 0 },
+          {
+            y: 0,
+            opacity: 1,
+            duration: 0.8,
+            stagger: 0.12,
+            ease: "power3.out",
+          }
+        );
+      });
+
+      // Belt-and-suspenders: ensure visibility for reduced-motion even if
+      // the CSS !important doesn't fire in time (e.g., SSR mismatch)
+      mm.add("(prefers-reduced-motion: reduce)", () => {
+        gsap.set(".hero-item", { opacity: 1, y: 0 });
+      });
+
+      return () => mm.revert();
+    },
+    { scope: containerRef }
+  );
+
+  const t = useTranslations("hero");
+  const tCommon = useTranslations("common");
 
   return (
-    <section 
+    <section
       ref={containerRef}
-      className="relative w-full h-screen flex flex-col items-center justify-center bg-bc-bg-base overflow-hidden"
+      className="relative min-h-dvh flex flex-col items-center justify-center bg-bc-bg-base overflow-hidden"
+      aria-label="B and C Concept — Hero"
     >
-      <div className="z-10 text-center px-4">
-        <h1 
-          className="hero-text opacity-0 translate-y-8 font-serif text-5xl md:text-7xl lg:text-8xl text-bc-text-primary tracking-widest mb-6"
+      {/* Decorative depth rings — aria-hidden, purely visual */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 flex items-center justify-center"
+      >
+        <div className="w-[72vmin] h-[72vmin] rounded-full border border-bc-primary opacity-[0.08]" />
+        <div className="absolute w-[46vmin] h-[46vmin] rounded-full border border-bc-primary opacity-[0.08]" />
+      </div>
+
+      {/* Hero content */}
+      <div className="relative z-10 text-center px-[clamp(1.25rem,4vw,2.5rem)] max-w-3xl mx-auto">
+        {/* Tagline — italic accent, appears first */}
+        <p
+          className="gsap-init hero-item font-serif italic text-bc-accent text-lg md:text-xl mb-5"
+          aria-hidden="false"
+        >
+          {t("tagline")}
+        </p>
+
+        {/* Brand headline */}
+        <h1
+          className="gsap-init hero-item font-serif text-5xl md:text-7xl lg:text-8xl text-bc-text-primary tracking-brand text-balance mb-6"
           aria-label="B and C Concept"
         >
-          B<span className="font-sans">&</span>C<span className="ml-1 md:ml-2">:</span> Concept
+          B<span className="font-sans">&amp;</span>C
+          <span className="mx-1 font-sans">:</span> Concept
         </h1>
-        <p className="hero-text opacity-0 translate-y-8 font-sans text-lg md:text-xl text-bc-text-muted max-w-2xl mx-auto mb-10">
-          Escandinavian-Mediterranean Home Decor. Curated for a serene and elegant lifestyle.
+
+        {/* Sub copy */}
+        <p className="gsap-init hero-item font-sans text-lg text-bc-text-secondary max-w-prose mx-auto mb-10 leading-relaxed">
+          {t("sub")}
         </p>
-        <Link href="/catalog" passHref>
-          <button className="hero-button opacity-0 translate-y-5 bg-bc-accent-med text-bc-bg-base font-sans px-8 py-4 uppercase tracking-widest text-sm hover:bg-bc-text-primary transition-colors duration-300 shadow-premium hover:shadow-premium-hover rounded-sm">
-            Explorar Colección
-          </button>
-        </Link>
-      </div>
-      
-      {/* Abstract aesthetic shapes for premium feel */}
-      <div className="absolute inset-0 pointer-events-none overflow-hidden flex items-center justify-center opacity-30">
-        <div className="w-[60vw] h-[60vw] max-w-[800px] max-h-[800px] rounded-full border border-bc-border-subtle absolute mix-blend-multiply" />
-        <div className="w-[40vw] h-[40vw] max-w-[500px] max-h-[500px] rounded-full border border-bc-border-subtle absolute mix-blend-multiply" />
+
+        {/* CTA group */}
+        <div className="gsap-init hero-item flex flex-col items-center gap-4">
+          <Button href="/catalog" variant="primary" size="lg">
+            {tCommon("cta")}
+          </Button>
+        </div>
       </div>
     </section>
   );

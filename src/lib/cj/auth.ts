@@ -6,9 +6,9 @@ const CJ_API_BASE = "https://developers.cjdropshipping.com/api2.0";
 export async function getCJAccessToken(): Promise<string | null> {
   // 1. Intentar obtener el token de Supabase
   const { data: tokenData, error } = await supabaseAdmin
-    .from("cj_tokens")
-    .select("*")
-    .eq("id", 1)
+    .from("supplier_credentials")
+    .select("access_token, access_token_expiry, refresh_token, refresh_token_expiry")
+    .eq("supplier", "cj")
     .single();
 
   if (error && error.code !== "PGRST116") {
@@ -58,14 +58,16 @@ async function fetchNewCJToken(): Promise<string | null> {
     const { accessToken, accessTokenExpiryDate, refreshToken, refreshTokenExpiryDate } = result.data;
 
     // Actualizar o insertar en Supabase
-    const { error } = await supabaseAdmin.from("cj_tokens").upsert({
-      id: 1,
-      access_token: accessToken,
-      refresh_token: refreshToken,
-      access_token_expiry: accessTokenExpiryDate,
-      refresh_token_expiry: refreshTokenExpiryDate,
-      updated_at: new Date().toISOString(),
-    });
+    const { error } = await supabaseAdmin.from("supplier_credentials").upsert(
+      {
+        supplier: "cj",
+        access_token: accessToken,
+        refresh_token: refreshToken,
+        access_token_expiry: accessTokenExpiryDate,
+        refresh_token_expiry: refreshTokenExpiryDate,
+      },
+      { onConflict: "supplier" }
+    );
 
     if (error) {
       console.error("Error saving new CJ token to Supabase:", error);
