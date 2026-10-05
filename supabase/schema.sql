@@ -72,7 +72,7 @@ CREATE TABLE product_variants (
 
 -- ----------------------------------------------------------------------------
 -- 3. ÓRDENES (idempotencia + retry)
---    NOTA Fase 1: se asume 1 proveedor por pedido. Si un carrito mezcla
+--    NOTA Fase 1: se asume 1 proveedor por pedido. Si una cesta mezcla
 --    BigBuy + CJ, divídelo en dispatches (tabla supplier_orders en el futuro).
 -- ----------------------------------------------------------------------------
 CREATE SEQUENCE order_number_seq START 1000;

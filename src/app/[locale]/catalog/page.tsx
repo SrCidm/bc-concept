@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import { setRequestLocale, getTranslations } from "next-intl/server";
 import { Container } from "@/components/ui/Container";
+import { Reveal } from "@/components/motion/Reveal";
 import { ProductGrid } from "@/components/catalog/ProductGrid";
 import { ProductGridSkeleton } from "@/components/catalog/ProductGridSkeleton";
 import { CatalogEmpty } from "@/components/catalog/CatalogEmpty";
@@ -31,14 +32,23 @@ export default async function CatalogPage({
   const query = normalizeQuery(searchParams.q);
 
   return (
-    <div className="min-h-dvh pt-24 pb-16">
+    <div className="min-h-dvh pt-28 md:pt-36 pb-24 md:pb-32">
       <Container>
-        <h1 className="font-serif text-4xl md:text-5xl text-bc-text-primary mb-3">
+        <Reveal
+          as="h1"
+          variant="lines"
+          className="font-serif text-[clamp(2.5rem,5.5vw,4.5rem)] leading-[1.05] tracking-[-0.01em] text-bc-text-primary mb-4"
+        >
           {t("title")}
-        </h1>
-        <p className="text-bc-text-secondary text-lg mb-10">
-          {query ? t("resultsFor", { query }) : t("subtitle")}
-        </p>
+        </Reveal>
+        <Reveal
+          delay={0.15}
+          className="mb-12 md:mb-16"
+        >
+          <p className="text-bc-text-secondary text-lg max-w-prose">
+            {query ? t("resultsFor", { query }) : t("subtitle")}
+          </p>
+        </Reveal>
         <Suspense key={query} fallback={<ProductGridSkeleton />}>
           <CatalogResults query={query} />
         </Suspense>

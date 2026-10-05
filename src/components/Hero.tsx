@@ -1,46 +1,64 @@
 "use client";
 
 import { useRef } from "react";
-import gsap from "gsap";
-import { useGSAP } from "@gsap/react";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/Button";
-
-// Register GSAP React plugin once at module level
-gsap.registerPlugin(useGSAP);
+import {
+  gsap,
+  useGSAP,
+  EASE_OUT,
+  MOTION_OK,
+  MOTION_REDUCED,
+} from "@/lib/motion/gsap";
 
 /**
  * Hero — Client Component (GSAP requires browser APIs).
  * Layout: tagline (italic) · H1 · sub · CTA
  * Two very faint rings (bc-primary, opacity-[0.08]) provide depth without glassmorphism.
- * GSAP fade-up with gsap.matchMedia():
- *   · no-preference → y:22→0, opacity:0→1, stagger 0.12s
- *   · reduce         → instant (CSS .gsap-init { opacity:1 !important } handles it)
+ * Motion con gsap.matchMedia():
+ *   · no-preference → entrada escalonada (ease-out expo) + parallax suave al
+ *     hacer scroll (anillos derivan, contenido sube y se atenúa)
+ *   · reduce         → contenido visible al instante, sin parallax
  */
 export function Hero() {
-  const containerRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLElement>(null);
 
   useGSAP(
     () => {
       const mm = gsap.matchMedia();
 
-      mm.add("(prefers-reduced-motion: no-preference)", () => {
+      mm.add(MOTION_OK, () => {
         gsap.fromTo(
           ".hero-item",
-          { y: 22, opacity: 0 },
+          { y: 28, opacity: 0 },
           {
             y: 0,
             opacity: 1,
-            duration: 0.8,
-            stagger: 0.12,
-            ease: "power3.out",
+            duration: 1.1,
+            stagger: 0.1,
+            ease: EASE_OUT,
+            clearProps: "transform",
           }
         );
+
+        // Parallax: solo transform/opacity, atado al scroll (scrub).
+        const scrollTrigger = {
+          trigger: containerRef.current,
+          start: "top top",
+          end: "bottom top",
+          scrub: true,
+        };
+        gsap.to(".hero-rings", { y: 70, ease: "none", scrollTrigger });
+        gsap.to(".hero-content", {
+          y: -60,
+          opacity: 0.55,
+          ease: "none",
+          scrollTrigger,
+        });
       });
 
-      // Belt-and-suspenders: ensure visibility for reduced-motion even if
-      // the CSS !important doesn't fire in time (e.g., SSR mismatch)
-      mm.add("(prefers-reduced-motion: reduce)", () => {
+      // Belt-and-suspenders: visible para reduced-motion aunque el CSS falle.
+      mm.add(MOTION_REDUCED, () => {
         gsap.set(".hero-item", { opacity: 1, y: 0 });
       });
 
@@ -61,25 +79,22 @@ export function Hero() {
       {/* Decorative depth rings — aria-hidden, purely visual */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-0 flex items-center justify-center"
+        className="hero-rings pointer-events-none absolute inset-0 flex items-center justify-center"
       >
         <div className="w-[72vmin] h-[72vmin] rounded-full border border-bc-primary opacity-[0.08]" />
         <div className="absolute w-[46vmin] h-[46vmin] rounded-full border border-bc-primary opacity-[0.08]" />
       </div>
 
       {/* Hero content */}
-      <div className="relative z-10 text-center px-[clamp(1.25rem,4vw,2.5rem)] max-w-3xl mx-auto">
+      <div className="hero-content relative z-10 text-center px-[clamp(1.25rem,4vw,2.5rem)] max-w-3xl mx-auto">
         {/* Tagline — italic accent, appears first */}
-        <p
-          className="gsap-init hero-item font-serif italic text-bc-accent text-lg md:text-xl mb-5"
-          aria-hidden="false"
-        >
+        <p className="gsap-init hero-item font-serif italic text-bc-accent text-lg md:text-xl mb-5">
           {t("tagline")}
         </p>
 
         {/* Brand headline */}
         <h1
-          className="gsap-init hero-item font-serif text-5xl md:text-7xl lg:text-8xl text-bc-text-primary tracking-brand text-balance mb-6"
+          className="gsap-init hero-item font-serif text-5xl md:text-7xl lg:text-8xl text-bc-text-primary tracking-brand text-balance mb-8"
           aria-label="B and C Concept"
         >
           B<span className="font-sans">&amp;</span>C
@@ -87,12 +102,12 @@ export function Hero() {
         </h1>
 
         {/* Sub copy */}
-        <p className="gsap-init hero-item font-sans text-lg text-bc-text-secondary max-w-prose mx-auto mb-10 leading-relaxed">
+        <p className="gsap-init hero-item font-sans text-lg text-bc-text-secondary max-w-prose mx-auto mb-12 leading-relaxed">
           {t("sub")}
         </p>
 
-        {/* CTA group */}
-        <div className="gsap-init hero-item flex flex-col items-center gap-4">
+        {/* CTA */}
+        <div className="gsap-init hero-item flex flex-col items-center">
           <Button href="/catalog" variant="primary" size="lg">
             {tCommon("cta")}
           </Button>

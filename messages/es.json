@@ -3,14 +3,22 @@
     "home": "Inicio",
     "collection": "Colección",
     "about": "Sobre nosotros",
-    "contact": "Contacto"
+    "contact": "Contacto",
+    "mainLabel": "Navegación principal",
+    "mobileLabel": "Menú móvil",
+    "menuDialog": "Menú de navegación"
   },
   "common": {
-    "cart": "Carrito ({count})",
+    "selectLanguage": "Seleccionar idioma",
+    "search": "Buscar",
+    "loading": "Cargando…",
+    "cart": "Cesta",
+    "cartAria": "{count, plural, =0 {Cesta, vacía} one {Cesta, # artículo} other {Cesta, # artículos}}",
     "cta": "Explorar colección",
     "delivery": "Entrega estimada 3-7 días laborables",
     "deliveryShort": "Entrega 3-7 días",
     "deliveryRange": "Entrega {min}-{max} días",
+    "deliveryExact": "Entrega en {days} días",
     "menu": "Menú",
     "language": "Idioma"
   },
@@ -63,8 +71,6 @@
     "terms": "Aviso legal",
     "privacy": "Privacidad",
     "cookies": "Cookies",
-    "returns": "Devoluciones (14 días)",
-    "copyright": "© 2026 Ben & Cid Concept",
-    "made": "Hecho con criterio en España"
+    "returns": "Devoluciones (14 días)"
   }
 }

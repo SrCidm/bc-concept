@@ -7,6 +7,7 @@ import { routing, type Locale } from "@/i18n/routing";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { GsapProvider } from "@/components/providers/GsapProvider";
+import { FooterCurtain } from "@/components/layout/FooterCurtain";
 import "../globals.css";
 
 const inter = Inter({
@@ -17,6 +18,8 @@ const inter = Inter({
 
 const playfair = Playfair_Display({
   subsets: ["latin"],
+  // Cursiva real (el tagline del Hero): sin esto el navegador la sintetiza.
+  style: ["normal", "italic"],
   variable: "--font-playfair",
   display: "swap",
 });
@@ -62,11 +65,17 @@ export default async function LocaleLayout({
       className={`${inter.variable} ${playfair.variable}`}
     >
       <body className="bg-bc-bg-base text-bc-text-primary font-sans antialiased">
+        {/* Sin JS el contenido animado debe seguir siendo visible */}
+        <noscript>
+          <style>{".gsap-init{opacity:1!important}"}</style>
+        </noscript>
         <NextIntlClientProvider messages={messages}>
           <GsapProvider>
             <Header />
-            <main>{children}</main>
-            <Footer />
+            <main className="footer-curtain-main">{children}</main>
+            <FooterCurtain>
+              <Footer />
+            </FooterCurtain>
           </GsapProvider>
         </NextIntlClientProvider>
       </body>

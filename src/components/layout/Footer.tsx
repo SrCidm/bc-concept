@@ -1,10 +1,12 @@
 import { getTranslations } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
 import { Container } from "@/components/ui/Container";
+import { Reveal } from "@/components/motion/Reveal";
 
 /**
  * Footer — Server Component.
- * bg-bc-accent (oliva oscuro) con texto claro.
+ * bg-bc-accent (oliva oscuro) con texto claro. Contraste AA: el texto
+ * secundario nunca baja de bc-surface/70 sobre el oliva.
  * 4 columnas desktop, 2 columnas móvil, marca a ancho completo.
  */
 export async function Footer() {
@@ -31,33 +33,41 @@ export async function Footer() {
   ];
 
   const footerLinkClasses =
-    "text-bc-surface/70 hover:text-bc-surface text-sm transition-colors duration-200 ease-bc";
+    "inline-block py-0.5 text-bc-surface/80 hover:text-bc-surface text-sm " +
+    "transition-colors duration-200 ease-bc";
+
+  const columnTitleClasses =
+    "font-sans text-xs tracking-widest uppercase text-bc-surface/70 mb-5";
 
   return (
     <footer className="bg-bc-accent text-bc-surface">
       <Container>
         {/* Main grid */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-8 py-14 md:py-16">
+        <Reveal
+          items
+          className="grid grid-cols-2 md:grid-cols-4 gap-x-8 gap-y-10 py-16 md:py-20"
+        >
           {/* Brand column — full width on mobile */}
-          <div className="col-span-2 md:col-span-1">
+          <div
+            data-reveal-item
+            className="gsap-init col-span-2 md:col-span-1"
+          >
             <p
-              className="font-serif text-lg tracking-brand mb-3"
+              className="font-serif text-xl tracking-brand mb-4"
               aria-label="B and C Concept"
             >
               B<span className="font-sans">&amp;</span>C
               <span className="mx-0.5 font-sans">:</span> Concept
             </p>
-            <p className="text-sm text-bc-surface/70 max-w-[28ch] leading-relaxed">
+            <p className="text-sm text-bc-surface/80 max-w-[28ch] leading-relaxed">
               {t("brand")}
             </p>
           </div>
 
           {/* Tienda */}
-          <div>
-            <h2 className="font-sans text-xs tracking-widest uppercase text-bc-surface/50 mb-4">
-              {t("shop")}
-            </h2>
-            <ul className="flex flex-col gap-3">
+          <div data-reveal-item className="gsap-init">
+            <h2 className={columnTitleClasses}>{t("shop")}</h2>
+            <ul className="flex flex-col gap-2.5">
               {shopLinks.map((link) => (
                 <li key={link.href}>
                   <Link href={link.href} className={footerLinkClasses}>
@@ -69,11 +79,9 @@ export async function Footer() {
           </div>
 
           {/* Información */}
-          <div>
-            <h2 className="font-sans text-xs tracking-widest uppercase text-bc-surface/50 mb-4">
-              {t("info")}
-            </h2>
-            <ul className="flex flex-col gap-3">
+          <div data-reveal-item className="gsap-init">
+            <h2 className={columnTitleClasses}>{t("info")}</h2>
+            <ul className="flex flex-col gap-2.5">
               {infoLinks.map((link) => (
                 <li key={link.href}>
                   <Link href={link.href} className={footerLinkClasses}>
@@ -85,11 +93,9 @@ export async function Footer() {
           </div>
 
           {/* Legal */}
-          <div>
-            <h2 className="font-sans text-xs tracking-widest uppercase text-bc-surface/50 mb-4">
-              {t("legal")}
-            </h2>
-            <ul className="flex flex-col gap-3">
+          <div data-reveal-item className="gsap-init">
+            <h2 className={columnTitleClasses}>{t("legal")}</h2>
+            <ul className="flex flex-col gap-2.5">
               {legalLinks.map((link) => (
                 <li key={link.href}>
                   <Link href={link.href} className={footerLinkClasses}>
@@ -99,13 +105,7 @@ export async function Footer() {
               ))}
             </ul>
           </div>
-        </div>
-
-        {/* Bottom bar */}
-        <div className="border-t border-bc-surface/20 py-5 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-bc-surface/50">
-          <span>{t("copyright")}</span>
-          <span>{t("made")}</span>
-        </div>
+        </Reveal>
       </Container>
     </footer>
   );

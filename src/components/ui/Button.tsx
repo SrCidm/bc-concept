@@ -1,4 +1,5 @@
 import React from "react";
+import { Link } from "@/i18n/navigation";
 
 type ButtonVariant = "primary" | "outline" | "ghost";
 type ButtonSize = "md" | "lg";
@@ -36,10 +37,12 @@ const sizeClasses: Record<ButtonSize, string> = {
   lg: "px-8 py-4 text-base",
 };
 
+// Transición solo de lo que cambia (nunca `all`). Pulsación: scale .97 en 160ms;
+// el color y el brillo cambian algo más despacio. Sin movimiento en reduced-motion.
 const baseClasses =
-  "inline-flex items-center justify-center font-sans rounded-bc " +
-  "transition-all ease-bc duration-200 " +
-  "active:translate-y-px " +
+  "inline-flex items-center justify-center font-sans rounded-bc select-none " +
+  "transition-[transform,background-color,color,border-color,box-shadow] ease-bc duration-200 " +
+  "motion-safe:active:scale-[0.97] motion-safe:active:duration-150 " +
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2";
 
 export function Button({
@@ -57,6 +60,11 @@ export function Button({
 
   if (props.href !== undefined) {
     const { href, ...rest } = props as ButtonAsAnchor;
+    // Rutas internas: Link con locale (navegación SPA, conserva /en y permite
+    // la transición de ruta). Externas/mailto: <a> normal.
+    if (href.startsWith("/") && !href.startsWith("//")) {
+      return <Link href={href} className={classes} {...rest} />;
+    }
     return <a href={href} className={classes} {...rest} />;
   }
 

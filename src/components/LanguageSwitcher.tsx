@@ -1,6 +1,6 @@
 "use client";
 
-import { useLocale } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { useRouter, usePathname } from "@/i18n/navigation";
 import { routing, type Locale } from "@/i18n/routing";
 
@@ -13,6 +13,7 @@ export function LanguageSwitcher() {
   const locale = useLocale();
   const router = useRouter();
   const pathname = usePathname();
+  const t = useTranslations("common");
 
   const handleSwitch = (nextLocale: Locale) => {
     if (nextLocale === locale) return;
@@ -22,8 +23,8 @@ export function LanguageSwitcher() {
   return (
     <div
       role="group"
-      aria-label="Seleccionar idioma"
-      className="flex items-center gap-1"
+      aria-label={t("selectLanguage")}
+      className="flex items-center gap-0.5"
     >
       {routing.locales.map((loc) => {
         const isActive = locale === loc;
@@ -34,7 +35,10 @@ export function LanguageSwitcher() {
             aria-pressed={isActive}
             className={[
               "text-xs font-sans tracking-widest px-2 py-1 rounded-bc",
-              "transition-colors ease-bc duration-200",
+              // Objetivo táctil ≥44px en móvil/tablet; compacto con puntero fino.
+              "max-lg:min-h-11 max-lg:min-w-11",
+              "transition-[color,transform] ease-bc duration-200",
+              "motion-safe:active:scale-95",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-bc-accent focus-visible:ring-offset-1",
               isActive
                 ? "text-bc-accent font-semibold"

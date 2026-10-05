@@ -1,4 +1,5 @@
 import type { Config } from "tailwindcss";
+import plugin from "tailwindcss/plugin";
 
 /**
  * B&C: Concept — Design tokens (paleta vigente salvia/oliva).
@@ -46,9 +47,49 @@ const config: Config = {
       maxWidth: {
         prose: "70ch", // tope de longitud de línea legible
       },
+      keyframes: {
+        // Solo opacidad/transform. Entrada rápida, salida más rápida aún.
+        "page-in": {
+          from: { opacity: "0" },
+          to: { opacity: "1" },
+        },
+        "menu-in": {
+          from: { opacity: "0", transform: "translateY(-8px)" },
+          to: { opacity: "1", transform: "translateY(0)" },
+        },
+        "menu-out": {
+          from: { opacity: "1", transform: "translateY(0)" },
+          to: { opacity: "0", transform: "translateY(-6px)" },
+        },
+      },
+      animation: {
+        "page-in": "page-in 280ms cubic-bezier(.16,1,.3,1) both",
+        "menu-in": "menu-in 220ms cubic-bezier(.16,1,.3,1) both",
+        "menu-out": "menu-out 140ms cubic-bezier(.16,1,.3,1) both",
+      },
     },
   },
-  plugins: [],
+  future: {
+    // Los estados hover solo aplican en dispositivos con hover real
+    // (evita falsos positivos al tocar en móvil).
+    hoverOnlyWhenSupported: true,
+  },
+  plugins: [
+    // hover-fine: hover solo con puntero fino y hover real (ratón/trackpad).
+    // Evita el hover "pegado" al tocar en móvil/tablet.
+    plugin(({ addVariant }) => {
+      addVariant(
+        "hover-fine",
+        "@media (hover: hover) and (pointer: fine) { &:hover }"
+      );
+      // group-hover-fine: anima partes internas (p. ej. un SVG) cuando el
+      // contenedor `.group` recibe hover real.
+      addVariant(
+        "group-hover-fine",
+        "@media (hover: hover) and (pointer: fine) { :merge(.group):hover & }"
+      );
+    }),
+  ],
 };
 
 export default config;

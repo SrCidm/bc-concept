@@ -16,7 +16,7 @@ Guía persistente para Claude Code. Tienda de **dropshipping de decoración de h
 - Estilos: Tailwind con tokens **`bc-*`** (ver `tailwind.config.ts`). Nunca colores hardcodeados ni estilos inline.
 - Tipografía: Playfair Display (headings) + Inter (body) vía `next/font`.
 - i18n: **next-intl v4**, `localePrefix: 'as-needed'`. ES por defecto (`/`), EN en `/en`. `<html>`/`<body>` viven en `app/[locale]/layout.tsx` (con `import "../globals.css"`). Sin AR/RTL.
-- Estado cliente: **Zustand** (carrito persistente) + Context puntual.
+- Estado cliente: **Zustand** (cesta persistente) + Context puntual.
 - BD: **Supabase** (`@supabase/supabase-js`, `@supabase/ssr`). **No Prisma.**
 - Animación: GSAP + `useGSAP` + `gsap.matchMedia()`, con `prefers-reduced-motion` obligatorio.
 
@@ -26,7 +26,7 @@ Guía persistente para Claude Code. Tienda de **dropshipping de decoración de h
 3. **Idempotencia doble:** `stripe_session_id` (webhook) + `order_number` (pedido al proveedor).
 4. **Reintentos:** máx. 3 (`retry_count`) → `error_supplier`. Snapshot en `order_items` (`supplier_variant_id`, `title_snapshot`, `unit_cost`) para poder recrear el pedido.
 5. **Proveedor-agnóstico:** nada de `cj_*` hardcodeado. `supplier` ('bigbuy'|'cj') + `supplier_*_id`, tras `lib/suppliers/<nombre>/`. BigBuy principal, CJ-EU secundario; solo almacén UE.
-6. **`DeliveryBadge`:** fuera del Hero, sin punto de color; solo en ficha/carrito/checkout/email.
+6. **`DeliveryBadge`:** fuera del Hero, sin punto de color; solo en ficha/cesta/checkout/email.
 7. **Secretos** (`SUPABASE_SERVICE_ROLE_KEY`, claves Stripe/proveedor) solo en env del servidor; nunca en el bundle ni en logs.
 8. El cliente nunca ve errores internos ("tu pedido está siendo procesado").
 

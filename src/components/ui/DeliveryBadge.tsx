@@ -28,7 +28,9 @@ export function DeliveryBadge({
   const t = useTranslations("common");
   const hasRange = minDays !== undefined && maxDays !== undefined;
   const text = hasRange
-    ? t("deliveryRange", { min: minDays, max: maxDays })
+    ? minDays === maxDays
+      ? t("deliveryExact", { days: minDays })
+      : t("deliveryRange", { min: minDays, max: maxDays })
     : short
       ? t("deliveryShort")
       : t("delivery");

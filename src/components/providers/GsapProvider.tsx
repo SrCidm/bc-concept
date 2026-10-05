@@ -1,21 +1,16 @@
 "use client";
 
-import { useEffect } from "react";
-import gsap from "gsap";
-import { ScrollTrigger } from "gsap/ScrollTrigger";
-import { useGSAP } from "@gsap/react";
+import { SmoothScroll } from "@/components/providers/SmoothScroll";
 
-// Register GSAP plugins
-if (typeof window !== "undefined") {
-  gsap.registerPlugin(ScrollTrigger, useGSAP);
-}
-
+/**
+ * Proveedor de motion: scroll suave global. Los plugins de GSAP se registran
+ * en "@/lib/motion/gsap" (se importa desde cada componente que anima).
+ */
 export function GsapProvider({ children }: { children: React.ReactNode }) {
-  // Global GSAP configuration can go here
-  useEffect(() => {
-    // Refresh ScrollTrigger on route change or dynamic layout updates
-    ScrollTrigger.refresh();
-  }, []);
-
-  return <>{children}</>;
+  return (
+    <>
+      <SmoothScroll />
+      {children}
+    </>
+  );
 }

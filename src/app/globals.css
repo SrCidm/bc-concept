@@ -4,28 +4,12 @@
 
 /**
  * B&C: Concept — globals
- * Variables CSS espejo de los tokens de Tailwind (paleta salvia/oliva).
+ * Los colores salen de los tokens bc-* de Tailwind (theme()), sin hex duplicados.
  */
-:root {
-  --bc-bg-base: #f5f5f0;
-  --bc-surface: #ffffff;
-  --bc-text-primary: #161708;
-  --bc-text-secondary: #6b6b6b;
-  --bc-primary: #94977f;
-  --bc-accent: #40422d;
-  --bc-border: #e5e5e0;
-
-  --background: var(--bc-bg-base);
-  --foreground: var(--bc-text-primary);
-}
-
 @layer base {
-  html {
-    scroll-behavior: smooth;
-  }
   body {
-    background: var(--bc-bg-base);
-    color: var(--bc-text-primary);
+    background: theme("colors.bc.bg-base");
+    color: theme("colors.bc.text-primary");
     font-family: var(--font-inter), system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
@@ -38,22 +22,59 @@
     text-wrap: pretty;
   }
   ::selection {
-    background: var(--bc-primary);
-    color: #fff;
+    background: theme("colors.bc.primary");
+    color: theme("colors.bc.surface");
   }
-  /* Evita FOUC en elementos animados por GSAP */
+  /* Evita FOUC en elementos animados por GSAP (Reveal, Hero). */
   .gsap-init {
     opacity: 0;
   }
 }
 
-/* Reduced motion: sin animaciones, contenido siempre visible */
-@media (prefers-reduced-motion: reduce) {
-  html { scroll-behavior: auto; }
-  *, *::before, *::after {
-    animation-duration: 0.001ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.001ms !important;
+/* Lenis — CSS recomendado (el scroll suave lo gestiona JS, no CSS). */
+html.lenis,
+html.lenis body {
+  height: auto;
+}
+.lenis.lenis-smooth {
+  scroll-behavior: auto !important;
+}
+.lenis.lenis-smooth [data-lenis-prevent] {
+  overscroll-behavior: contain;
+}
+.lenis.lenis-stopped {
+  overflow: hidden;
+}
+
+/**
+ * Cortina de footer: el contenido (main) se desliza y descubre el footer,
+ * que queda fijo detrás. Solo en pantallas con altura suficiente y sin
+ * reduced-motion; en el resto, footer en flujo normal.
+ * --bc-footer-h la fija FooterCurtain (ResizeObserver).
+ */
+@media (min-width: 768px) and (min-height: 640px) and (prefers-reduced-motion: no-preference) {
+  .footer-curtain-main {
+    position: relative;
+    z-index: 10;
+    margin-bottom: var(--bc-footer-h, 0px);
+    background: theme("colors.bc.bg-base");
   }
-  .gsap-init { opacity: 1 !important; }
+  .footer-curtain {
+    position: fixed;
+    inset-inline: 0;
+    bottom: 0;
+    z-index: 0;
+  }
+}
+
+/**
+ * Reduced motion: reducción intencional, no un kill global.
+ * · Contenido siempre visible (sin estado inicial oculto).
+ * · Se conservan las transiciones de color/opacidad (ayudan a entender estados);
+ *   las de movimiento van gated con motion-safe: en cada componente.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .gsap-init {
+    opacity: 1 !important;
+  }
 }
