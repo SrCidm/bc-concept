@@ -31,6 +31,11 @@ Guía persistente para Claude Code. Tienda de **dropshipping de decoración de h
 7. **Secretos** (`SUPABASE_SERVICE_ROLE_KEY`, claves Stripe/proveedor) solo en env del servidor; nunca en el bundle ni en logs.
 8. El cliente nunca ve errores internos ("tu pedido está siendo procesado").
 
+## Deuda anotada (Hito 3)
+- **Filtro UE fail-closed** (crítico): hoy `isEuWarehouse(null)` asume UE. Al validar contra el sandbox de BigBuy (cuando llegue `BIGBUY_API_KEY`) debe pasar a "almacén desconocido = NO elegible UE" (excluir o marcar). Ver TODO en `src/lib/suppliers/bigbuy/warehouses.ts`.
+- **Guarda de margen (Fase 3.4):** editable por Yosra desde una tabla de ajustes de admin, no `MARGIN_*` en env; y el coste de envío vendrá **por producto** de BigBuy, no fijo. Ver TODO en `src/lib/pricing/margin.ts`.
+- Migrar CJ (`src/lib/cj/`) a `lib/suppliers/cj/` con la interfaz común; valorar cifrado de `api_key` (Supabase Vault) antes de producción.
+
 ## Economía unitaria
 Antes de catalogar: `precio_venta − IVA(21%) − coste − envío − comisión Stripe − colchón devoluciones = margen neto`. Objetivo neto 15-35%. Si no deja margen, no entra.
 

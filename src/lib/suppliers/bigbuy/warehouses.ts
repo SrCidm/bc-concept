@@ -15,8 +15,21 @@ export function normalizeWarehouse(raw: string | null): string | null {
 
 /**
  * ¿Cuenta como almacén UE? Si BigBuy NO informa del país (null) se asume UE:
- * es un proveedor europeo con almacenes en la UE. ⚠️ Suposición: revisarla al
- * validar la respuesta real (si el campo existe, se aplica el filtro estricto).
+ * es un proveedor europeo con almacenes en la UE. ⚠️ Suposición PROVISIONAL.
+ *
+ * TODO(crítico · Hito 3, al validar contra el sandbox con BIGBUY_API_KEY):
+ *   pasar a FAIL-CLOSED. "Almacén desconocido" debe ser NO elegible UE
+ *   (excluir del listado o marcar como `euEligible: false` / "almacén sin
+ *   verificar"), no UE. Afecta a la promesa de entrega del negocio (solo
+ *   almacén UE, regla #5): un producto con almacén desconocido no puede
+ *   ofrecerse con plazos de entrega UE. Al cambiarlo, actualizar también:
+ *     · isEuWarehouse(null) → false
+ *     · tests de bigbuy.test.ts ("null se asume UE" y el fixture 1005)
+ *     · el fixture STOCK[1005] (stocks sin `warehouse`) y los resultados
+ *       esperados de listProducts
+ *   No se hace ahora porque sin la respuesta real no sabemos si BigBuy
+ *   expone el país del almacén (si no lo expone, TODO el catálogo quedaría
+ *   fuera): hay que ver el campo real primero.
  */
 export function isEuWarehouse(warehouse: string | null): boolean {
   return warehouse === null || EU_COUNTRY_CODES.has(warehouse);

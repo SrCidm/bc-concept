@@ -7,7 +7,17 @@ import "server-only";
  *
  * Todos los parámetros son OBLIGATORIOS y no tienen valores por defecto en
  * código: la guarda de margen es CONFIGURABLE, no hardcodeada. En la Fase 3.1
- * se leen de variables MARGIN_*; en 3.4 pasarán a ser editables por Yosra.
+ * se leen de variables MARGIN_* (solución PROVISIONAL).
+ *
+ * TODO(Hito 3 · Fase 3.4):
+ *   · La guarda de margen será EDITABLE por Yosra desde una tabla de ajustes de
+ *     admin (BD, solo service role + requireAdmin), NO desde variables MARGIN_*.
+ *     `parseMarginParams(env)` se sustituye por una lectura de esa tabla.
+ *   · El coste de envío NO será un valor fijo (`shippingCost`): vendrá POR
+ *     PRODUCTO desde BigBuy. `MarginParams.shippingCost` pasa a ser un dato de
+ *     entrada de `computeMargin` por producto (y se retira del conjunto de
+ *     ajustes globales). Hasta entonces el margen usa un envío medio y es solo
+ *     orientativo.
  */
 
 export interface MarginParams {
