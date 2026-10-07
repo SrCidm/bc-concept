@@ -1,0 +1,3 @@
+[test]
+# `server-only` lanza fuera del runtime de Next; se neutraliza para los tests.
+preload = ["./test/setup.ts"]

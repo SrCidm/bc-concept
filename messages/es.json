@@ -35,6 +35,20 @@
     "errorBody": "Ha ocurrido un problema temporal. Inténtalo de nuevo en unos instantes.",
     "retry": "Reintentar"
   },
+  "admin": {
+    "login": {
+      "title": "Acceso al panel",
+      "intro": "Introduce tu correo de administración. Si está autorizado, te enviaremos un enlace de acceso.",
+      "emailLabel": "Correo electrónico",
+      "submit": "Enviar enlace",
+      "sending": "Enviando…",
+      "sent": "Si el correo está autorizado, recibirás un enlace en unos instantes.",
+      "error": "No hemos podido enviar el enlace. Inténtalo de nuevo.",
+      "linkInvalid": "El enlace no es válido o ha caducado. Solicita uno nuevo.",
+      "signedInAs": "Sesión iniciada como {email}",
+      "signOut": "Cerrar sesión"
+    }
+  },
   "search": {
     "label": "Buscar productos",
     "placeholder": "Buscar"

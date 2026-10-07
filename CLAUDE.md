@@ -4,7 +4,8 @@ Guía persistente para Claude Code. Tienda de **dropshipping de decoración de h
 
 ## Estado actual
 - **Hito 1 (frontend base) cerrado:** i18n bilingüe, Header/Footer, Hero, componentes base, seguridad de BD v2.
-- **Trabajando en: Hito 2** — catálogo real conectado a Supabase (`products_public`), `ProductCard` con datos, y buscador tolerante a erratas (`pg_trgm` + `unaccent`) enrutado a `/catalog?q=…`.
+- **Hito 2 cerrado:** catálogo real desde `products_public`, `ProductCard`, buscador tolerante a erratas (`pg_trgm` + `unaccent`), pulido visual y motion del storefront.
+- **Trabajando en: Hito 3 · Fase 3.1** — adaptador BigBuy (`src/lib/suppliers/`), Route Handlers admin (`/api/admin/**`) y credencial en `supplier_credentials`. Después: 3.2 UI del panel, 3.3 importación, 3.4 guarda de margen configurable.
 
 ## Comandos
 - Runtime: **Bun** (nunca npm/yarn). `bun install`, `bun run dev`, `bun run build`.
@@ -21,7 +22,7 @@ Guía persistente para Claude Code. Tienda de **dropshipping de decoración de h
 - Animación: GSAP + `useGSAP` + `gsap.matchMedia()`, con `prefers-reduced-motion` obligatorio.
 
 ## Reglas no negociables (seguridad y negocio)
-1. **`price_cost` JAMÁS llega al cliente.** El storefront lee de la vista `products_public`. La tabla base está protegida por grants de columna + RLS. Verificar con `SET ROLE anon` ante cualquier cambio de esquema.
+1. **`price_cost` JAMÁS llega al storefront público/anon** (`products_public`, rutas públicas, bundle de cliente). La tabla base está protegida por grants de columna + RLS. Verificar con `SET ROLE anon` ante cualquier cambio de esquema. **Excepción acotada:** una admin autenticada (`requireAdmin`, primera línea de cada handler de `/api/admin/**`, fail-closed) sí ve el coste del proveedor y el margen en el panel. Esos módulos (`lib/suppliers`, `lib/pricing`) no se importan desde el storefront.
 2. **Webhooks:** verificación de firma como primera línea (Stripe `STRIPE_WEBHOOK_SECRET`). 200 rápido + trabajo pesado a cola/Edge Function.
 3. **Idempotencia doble:** `stripe_session_id` (webhook) + `order_number` (pedido al proveedor).
 4. **Reintentos:** máx. 3 (`retry_count`) → `error_supplier`. Snapshot en `order_items` (`supplier_variant_id`, `title_snapshot`, `unit_cost`) para poder recrear el pedido.
@@ -35,6 +36,7 @@ Antes de catalogar: `precio_venta − IVA(21%) − coste − envío − comisió
 
 ## Contexto ampliado (leer bajo demanda, no cargar entero)
 - Instrucciones completas y decisiones: `docs/` (PRD, TRD, UI/UX, AppFlow, Backend-Schema, Implementation-Plan, Investigacion-Mercado-Competencia).
+- Proveedores: `src/lib/suppliers/<nombre>/` con la interfaz común (`auth`, `listProducts`, `getProduct`). BigBuy ✓; CJ (`src/lib/cj/`) pendiente de migrar. Las respuestas de BigBuy están **sin validar en vivo** hasta tener `BIGBUY_API_KEY` (ver `src/lib/suppliers/bigbuy/endpoints.ts`).
 - Esquema BD canónico: `supabase/schema.sql` · migración: `supabase/migration_v1_to_v2.sql`.
 
 ## Skills (se auto-invocan por su descripción)
