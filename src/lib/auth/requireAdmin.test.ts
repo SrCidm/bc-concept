@@ -61,6 +61,49 @@ describe("requireAdmin (fail-closed)", () => {
   });
 });
 
+describe("normalización de ADMIN_EMAILS y del email del usuario (trim + lowercase)", () => {
+  // Valor tal como podría llegar de un .env mal formateado.
+  const RAW = "yosra@BC.com , hola@bc.com";
+
+  test('"yosra@BC.com , hola@bc.com" (espacios y mayúsculas) autoriza a yosra@bc.com', async () => {
+    const r = await requireAdmin({
+      getUser: async () => ({ id: "u1", email: "yosra@bc.com", emailConfirmed: true }),
+      adminEmails: RAW,
+    });
+    expect(r.ok).toBe(true);
+    if (r.ok) expect(r.email).toBe("yosra@bc.com");
+  });
+
+  test("también autoriza a la otra entrada de la lista", async () => {
+    expect(
+      await status({ getUser: async () => ({ id: "u2", email: "hola@bc.com", emailConfirmed: true }), adminEmails: RAW })
+    ).toBe(200);
+  });
+
+  test("el email del usuario con mayúsculas y espacios alrededor también se normaliza", async () => {
+    for (const email of ["  Yosra@BC.com ", "YOSRA@BC.COM", "\tyosra@bc.com\n"]) {
+      expect(
+        await status({ getUser: async () => ({ id: "u1", email, emailConfirmed: true }), adminEmails: RAW })
+      ).toBe(200);
+    }
+  });
+
+  test("normalizar no abre de más: otro correo o solo espacios siguen denegados", async () => {
+    for (const email of ["otra@bc.com", "yosra@bc.com.evil.com", "xyosra@bc.com", "   ", ""]) {
+      expect(
+        await status({ getUser: async () => ({ id: "u3", email, emailConfirmed: true }), adminEmails: RAW })
+      ).toBe(403);
+    }
+  });
+
+  test("lista vacía o ausente sigue siendo 'denegar todo' aunque el email coincida", async () => {
+    const u = { id: "u1", email: "yosra@bc.com", emailConfirmed: true };
+    expect(await status({ getUser: async () => u, adminEmails: "" })).toBe(403);
+    expect(await status({ getUser: async () => u, adminEmails: "   ,  , " })).toBe(403);
+    expect(await status({ getUser: async () => u, adminEmails: undefined })).toBe(403);
+  });
+});
+
 describe("parseAdminEmails", () => {
   test("normaliza, recorta y descarta vacíos", () => {
     expect(Array.from(parseAdminEmails(" A@x.com , b@X.com ,, "))).toEqual(["a@x.com", "b@x.com"]);

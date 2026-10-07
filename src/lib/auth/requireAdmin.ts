@@ -71,7 +71,8 @@ export async function requireAdmin(deps: RequireAdminDeps = {}): Promise<AdminAu
   if (!user) return denied(401, "unauthenticated", "Inicia sesión para continuar.");
 
   const allowed = parseAdminEmails("adminEmails" in deps ? deps.adminEmails : process.env.ADMIN_EMAILS);
-  const email = user.email?.toLowerCase() ?? null;
+  // Misma normalización que la lista (trim + lowercase) en ambos lados.
+  const email = user.email?.trim().toLowerCase() || null;
   if (!email || !user.emailConfirmed || allowed.size === 0 || !allowed.has(email)) {
     return denied(403, "forbidden", "No tienes permiso para acceder aquí.");
   }
