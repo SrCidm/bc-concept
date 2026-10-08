@@ -4,10 +4,7 @@ import { notFound } from "next/navigation";
 import { NextIntlClientProvider } from "next-intl";
 import { getMessages, setRequestLocale } from "next-intl/server";
 import { routing, type Locale } from "@/i18n/routing";
-import { Header } from "@/components/layout/Header";
-import { Footer } from "@/components/layout/Footer";
 import { GsapProvider } from "@/components/providers/GsapProvider";
-import { FooterCurtain } from "@/components/layout/FooterCurtain";
 import "../globals.css";
 
 const inter = Inter({
@@ -71,11 +68,9 @@ export default async function LocaleLayout({
         </noscript>
         <NextIntlClientProvider messages={messages}>
           <GsapProvider>
-            <Header />
-            <main className="footer-curtain-main">{children}</main>
-            <FooterCurtain>
-              <Footer />
-            </FooterCurtain>
+            {/* Header/Footer del storefront viven en (site)/layout.tsx; el área
+                admin ((admin)/admin) no los hereda. */}
+            {children}
           </GsapProvider>
         </NextIntlClientProvider>
       </body>
