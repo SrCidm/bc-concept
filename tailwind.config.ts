@@ -14,17 +14,21 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
+        // Cada token es una variable CSS (canales RGB) definida en globals.css:
+        // `:root` guarda la paleta de la tienda y `[data-admin-invert]` la del
+        // modo admin. `<alpha-value>` mantiene vivas las utilidades con opacidad
+        // (bg-bc-primary/10, etc.). Los valores viven SOLO en globals.css.
         bc: {
-          "bg-base":       "#F5F5F0", // fondo principal (blanco hueso)
-          surface:         "#FFFFFF", // tarjetas / superficies
-          "text-primary":  "#161708", // texto principal (negro oliva)
-          "text-secondary":"#6B6B6B", // secundario — usar en texto ≥16px / no crítico
-          primary:         "#94977F", // verde salvia
-          accent:          "#40422D", // oliva oscuro (botones, acentos)
-          "accent-hover":  "#33351F", // estado hover del oliva
-          border:          "#E5E5E0",
-          success:         "#059669",
-          error:           "#DC2626",
+          "bg-base":       "rgb(var(--bc-bg-base) / <alpha-value>)",        // fondo principal (blanco hueso)
+          surface:         "rgb(var(--bc-surface) / <alpha-value>)",        // tarjetas / superficies
+          "text-primary":  "rgb(var(--bc-text-primary) / <alpha-value>)",   // texto principal (negro oliva)
+          "text-secondary":"rgb(var(--bc-text-secondary) / <alpha-value>)", // secundario — usar en texto ≥16px / no crítico
+          primary:         "rgb(var(--bc-primary) / <alpha-value>)",        // verde salvia
+          accent:          "rgb(var(--bc-accent) / <alpha-value>)",         // oliva oscuro (botones, acentos)
+          "accent-hover":  "rgb(var(--bc-accent-hover) / <alpha-value>)",   // estado hover del oliva
+          border:          "rgb(var(--bc-border) / <alpha-value>)",
+          success:         "rgb(var(--bc-success) / <alpha-value>)",
+          error:           "rgb(var(--bc-error) / <alpha-value>)",
         },
       },
       fontFamily: {

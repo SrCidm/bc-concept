@@ -5,8 +5,23 @@
 /**
  * B&C: Concept — globals
  * Los colores salen de los tokens bc-* de Tailwind (theme()), sin hex duplicados.
+ * Esta es la ÚNICA fuente de los valores: tailwind.config.ts solo referencia
+ * estas variables (canales RGB, para poder usar opacidad: bc-primary/10).
  */
 @layer base {
+  :root {
+    --bc-bg-base: 245 245 240;       /* #F5F5F0 fondo principal (blanco hueso) */
+    --bc-surface: 255 255 255;       /* #FFFFFF tarjetas / superficies */
+    --bc-text-primary: 22 23 8;      /* #161708 texto principal (negro oliva) */
+    --bc-text-secondary: 107 107 107;/* #6B6B6B secundario */
+    --bc-primary: 148 151 127;       /* #94977F verde salvia */
+    --bc-accent: 64 66 45;           /* #40422D oliva oscuro (botones, acentos) */
+    --bc-accent-hover: 51 53 31;     /* #33351F hover del oliva */
+    --bc-border: 229 229 224;        /* #E5E5E0 */
+    --bc-success: 5 150 105;         /* #059669 */
+    --bc-error: 220 38 38;           /* #DC2626 */
+  }
+
   body {
     background: theme("colors.bc.bg-base");
     color: theme("colors.bc.text-primary");
