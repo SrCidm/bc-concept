@@ -16,6 +16,11 @@ const store = new Map<string, string>();
 let acceptedKey = API_KEY;
 
 mock.module("@/lib/auth/requireAdmin", () => ({
+  // `listAdminCatalog` (que usa la ruta de productos) re-comprueba la sesión con resolveAdmin.
+  resolveAdmin: async () =>
+    session === "admin"
+      ? { ok: true, userId: "u1", email: "yosra@example.com" }
+      : { ok: false, status: 401, code: "unauthenticated", message: "x", email: null },
   requireAdmin: async () =>
     session === "admin"
       ? { ok: true, userId: "u1", email: "yosra@example.com" }

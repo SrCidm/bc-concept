@@ -6,13 +6,11 @@ import {
   type MarginReason,
 } from "@/lib/pricing/margin";
 import type {
-  Money,
-  ProductPage,
-  SupplierId,
-  SupplierProduct,
-  SupplierVariant,
-  WarehouseStock,
-} from "./types";
+  AdminProductDTO,
+  AdminProductPageDTO,
+  AdminVariantDTO,
+} from "./dto.types";
+import type { Money, ProductPage, SupplierProduct, SupplierVariant } from "./types";
 
 /**
  * DTO ADMIN. Incluye coste y margen derivado a propósito: lo consume el panel
@@ -22,44 +20,7 @@ import type {
  * (lo vigila un test).
  */
 
-export interface AdminVariantDTO {
-  supplierVariantId: string;
-  sku: string | null;
-  name: string;
-  cost: Money;
-  suggestedRetail: Money | null;
-  stock: number;
-  attributes: Record<string, string>;
-  image: string | null;
-}
-
-export interface AdminProductDTO {
-  supplier: SupplierId;
-  supplierProductId: string;
-  sku: string | null;
-  ean: string | null;
-  title: string;
-  description: string | null;
-  images: string[];
-  category: string | null;
-  weightKg: number | null;
-  cost: Money;
-  suggestedRetail: Money | null;
-  margin: MarginBreakdown | null;
-  /** Por qué no hay margen (null si lo hay). */
-  marginReason: MarginReason | null;
-  stock: { total: number; euTotal: number; eu: WarehouseStock[] };
-  delivery: { minDays: number | null; maxDays: number | null };
-  variants: AdminVariantDTO[];
-}
-
-export interface AdminProductPageDTO {
-  items: AdminProductDTO[];
-  page: number;
-  pageSize: number;
-  hasMore: boolean;
-  fetched: number;
-}
+export type { AdminVariantDTO, AdminProductDTO, AdminProductPageDTO } from "./dto.types";
 
 function deriveMargin(
   cost: Money,

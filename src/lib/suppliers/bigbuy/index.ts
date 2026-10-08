@@ -20,6 +20,8 @@ export interface BigBuyDeps extends HttpDeps {
   getApiKey?: () => Promise<string | null>;
   /** TTL de los bulk (info/imágenes/stock). Por defecto 10 min. */
   cacheTtlMs?: number;
+  /** Filtro de URLs de imagen. Por defecto solo https (el mock admite rutas locales). */
+  isAllowedImageUrl?: (url: string) => boolean;
   now?: () => number;
 }
 
@@ -130,6 +132,7 @@ export function createBigBuyAdapter(deps: BigBuyDeps = {}): SupplierAdapter {
           info: id ? info.get(id) ?? null : null,
           images: id ? images.get(id) ?? null : null,
           stock: id ? stock.get(id) ?? null : null,
+          isAllowedImageUrl: deps.isAllowedImageUrl,
         });
         if (!product) continue;
         // euOnly cuenta solo existencias en almacén UE; inStockOnly exige > 0.
@@ -174,6 +177,7 @@ export function createBigBuyAdapter(deps: BigBuyDeps = {}): SupplierAdapter {
         images,
         stock,
         variations,
+        isAllowedImageUrl: deps.isAllowedImageUrl,
       });
     },
   };

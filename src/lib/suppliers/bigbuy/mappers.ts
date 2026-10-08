@@ -27,14 +27,20 @@ export function mapStock(raw: unknown): WarehouseStock[] {
   return out;
 }
 
-/** ⚠️ Supuesto: `{ images: [{ url }] }` o lista de `{ url }` / URLs. Solo https. */
-export function mapImages(raw: unknown): string[] {
+/** Por defecto solo https: la URL acabará en un `<img>` del navegador. */
+const httpsOnly = (url: string) => url.startsWith("https://");
+
+/**
+ * ⚠️ Supuesto: `{ images: [{ url }] }` o lista de `{ url }` / URLs. Solo https
+ * salvo que se inyecte otro filtro (el mock del panel admite rutas locales).
+ */
+export function mapImages(raw: unknown, allow: (url: string) => boolean = httpsOnly): string[] {
   const r = rec(raw);
   const items = r ? list(r.images) : list(raw);
   const urls: string[] = [];
   for (const item of items) {
     const url = typeof item === "string" ? item : text(rec(item)?.url);
-    if (url && url.startsWith("https://")) urls.push(url);
+    if (url && allow(url)) urls.push(url);
   }
   return Array.from(new Set(urls));
 }
@@ -59,7 +65,10 @@ function mapAttributes(raw: unknown): Record<string, string> {
 }
 
 /** ⚠️ Supuesto: cada variación trae id, sku, wholesalePrice, retailPrice y stock. */
-export function mapVariations(raw: unknown): SupplierVariant[] {
+export function mapVariations(
+  raw: unknown,
+  allow: (url: string) => boolean = httpsOnly
+): SupplierVariant[] {
   const out: SupplierVariant[] = [];
   for (const item of list(raw)) {
     const v = rec(item);
@@ -78,7 +87,7 @@ export function mapVariations(raw: unknown): SupplierVariant[] {
       suggestedRetail: eur(num(v.retailPrice)),
       stock,
       attributes: mapAttributes(v.attributes),
-      image: mapImages(v.images ?? null)[0] ?? null,
+      image: mapImages(v.images ?? null, allow)[0] ?? null,
     });
   }
   return out;
@@ -90,6 +99,8 @@ export interface RawBundle {
   images?: unknown;
   stock?: unknown;
   variations?: unknown;
+  /** Filtro de URLs de imagen (por defecto solo https). */
+  isAllowedImageUrl?: (url: string) => boolean;
 }
 
 /**
@@ -115,7 +126,7 @@ export function mapProduct(bundle: RawBundle): SupplierProduct | null {
     ean: text(p.ean13) ?? text(p.ean),
     title: text(bundle.info?.name) ?? sku ?? `BigBuy ${id}`,
     description: text(bundle.info?.description),
-    images: mapImages(bundle.images ?? null),
+    images: mapImages(bundle.images ?? null, bundle.isAllowedImageUrl),
     category: text(p.category) ?? text(p.taxonomy),
     weightKg: num(p.weight),
     cost,
@@ -126,6 +137,6 @@ export function mapProduct(bundle: RawBundle): SupplierProduct | null {
       euTotal: eu.reduce((n, e) => n + e.quantity, 0),
     },
     delivery: summarizeHandling(eu),
-    variants: mapVariations(bundle.variations ?? null),
+    variants: mapVariations(bundle.variations ?? null, bundle.isAllowedImageUrl),
   };
 }

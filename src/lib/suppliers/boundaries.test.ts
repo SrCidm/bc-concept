@@ -13,6 +13,7 @@ const ROOT = join(import.meta.dir, "..", "..", "..");
 const SRC = join(ROOT, "src");
 
 const COST_MODULES = [
+  "@/lib/admin/",
   "@/lib/suppliers",
   "@/lib/pricing",
   "@/lib/api/admin",
@@ -30,12 +31,26 @@ function walk(dir: string, out: string[] = []): string[] {
   return out;
 }
 
-const files = walk(SRC).map((f) => ({ path: f, rel: relative(SRC, f).split(sep).join("/"), src: readFileSync(f, "utf8") }));
+/**
+ * ÚNICA vía por la que la UI (componentes) puede tocar tipos del proveedor:
+ * `import type` del archivo de tipos del DTO, sin `server-only` ni código. Se
+ * elimina antes de aplicar las reglas de abajo; cualquier otro import sigue prohibido.
+ */
+const DTO_TYPES_IMPORT = /import\s+type\s+\{[^}]*\}\s+from\s+["']@\/lib\/suppliers\/dto\.types["'];?/g;
+
+const files = walk(SRC).map((f) => {
+  const rel = relative(SRC, f).split(sep).join("/");
+  const raw = readFileSync(f, "utf8");
+  // Solo los componentes del panel pueden usar la excepción de tipos.
+  const src = rel.startsWith("components/admin/") ? raw.replace(DTO_TYPES_IMPORT, "") : raw;
+  return { path: f, rel, src };
+});
 
 /** Quién puede importar módulos con coste. */
 const ALLOWED = (rel: string) =>
   rel.startsWith("app/api/admin/") || // Route Handlers admin (tras requireAdmin)
   rel.startsWith("app/[locale]/(admin)/") || // área admin (páginas con requireAdminPage)
+  rel.startsWith("lib/admin/") || // listAdminCatalog (auto-guardado)
   rel.startsWith("lib/suppliers/") ||
   rel.startsWith("lib/pricing/") ||
   rel.startsWith("lib/api/") ||
@@ -128,5 +143,23 @@ describe("fronteras de la regla #1 (coste solo en superficies admin)", () => {
       .filter((f) => /@\/lib\/(suppliers|pricing|auth|api)\//.test(f.src) || /@\/lib\/supabase\/admin/.test(f.src))
       .map((f) => f.rel);
     expect(offenders).toEqual([]);
+  });
+
+  test("dto.types.ts es client-safe: solo `import type`, sin server-only ni código con efectos", () => {
+    const f = files.find((x) => x.rel === "lib/suppliers/dto.types.ts");
+    expect(f).toBeDefined();
+    const code = f!.src.replace(/\/\*[\s\S]*?\*\/|\/\/.*$/gm, "");
+    expect(code).not.toContain("server-only");
+    const imports = code.match(/^\s*import.*$/gm) ?? [];
+    for (const line of imports) expect(line).toMatch(/^\s*import\s+type/);
+    expect(code).not.toMatch(/export\s+(const|let|var|function|class|enum)/);
+  });
+
+  test("el mock de BigBuy solo lo importa el registro (que lo ignora en producción)", () => {
+    const importers = files
+      .filter((f) => !f.rel.startsWith("lib/suppliers/bigbuy/mock/"))
+      .filter((f) => /from\s+["'][^"']*\/mock\/(catalog|transport)["']/.test(f.src))
+      .map((f) => f.rel);
+    expect(importers).toEqual(["lib/suppliers/registry.ts"]);
   });
 });
