@@ -1,6 +1,7 @@
 import { getTranslations } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
 import { AdminNav } from "@/components/admin/AdminNav";
+import { BackToStoreLink } from "@/components/admin/BackToStoreLink";
 
 const actionClasses =
   "inline-flex items-center min-h-11 px-3 rounded-bc text-sm text-bc-text-secondary " +
@@ -43,9 +44,7 @@ export async function AdminTopBar({ email }: { email: string }) {
           >
             {email}
           </span>
-          <Link href="/" className={actionClasses}>
-            {t("backToStore")}
-          </Link>
+          <BackToStoreLink className={actionClasses}>{t("backToStore")}</BackToStoreLink>
           {/* POST con recarga completa (el handler valida mismo origen). */}
           <form action="/api/admin/auth/logout" method="post">
             <button type="submit" className={actionClasses}>

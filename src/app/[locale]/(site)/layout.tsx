@@ -2,6 +2,7 @@ import { setRequestLocale } from "next-intl/server";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { FooterCurtain } from "@/components/layout/FooterCurtain";
+import { AdminRibbon } from "@/components/layout/AdminRibbon";
 
 /**
  * Cromo del storefront: Header + <main> + Footer con cortina. Antes vivía en el
@@ -24,6 +25,8 @@ export default function SiteLayout({
       <FooterCurtain>
         <Footer />
       </FooterCurtain>
+      {/* Cliente y sin leer sesión en servidor: el storefront sigue siendo estático. */}
+      <AdminRibbon />
     </>
   );
 }

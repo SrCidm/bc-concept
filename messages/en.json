@@ -35,6 +35,12 @@
     "errorBody": "A temporary problem occurred. Please try again in a moment.",
     "retry": "Try again"
   },
+  "siteRibbon": {
+    "label": "Administration session",
+    "session": "Admin session",
+    "toPanel": "Go to panel",
+    "viewAsCustomer": "View as customer"
+  },
   "search": {
     "label": "Search products",
     "placeholder": "Search"

@@ -9,7 +9,9 @@
  * estas variables (canales RGB, para poder usar opacidad: bc-primary/10).
  */
 @layer base {
-  :root {
+  /* `.bc-theme-light` restablece la paleta de la tienda dentro del modo admin (cortina de salida). */
+  :root,
+  .bc-theme-light {
     --bc-bg-base: 245 245 240;       /* #F5F5F0 fondo principal (blanco hueso) */
     --bc-surface: 255 255 255;       /* #FFFFFF tarjetas / superficies */
     --bc-text-primary: 22 23 8;      /* #161708 texto principal (negro oliva) */
@@ -20,6 +22,32 @@
     --bc-border: 229 229 224;        /* #E5E5E0 */
     --bc-success: 5 150 105;         /* #059669 */
     --bc-error: 220 38 38;           /* #DC2626 */
+  }
+
+  /**
+   * Modo admin (3.2b): paleta invertida SOLO dentro de /admin y solo para las
+   * cuentas de ADMIN_PALETTE_INVERT_EMAILS (el panel renderiza el atributo en
+   * servidor: ver (panel)/layout.tsx y AdminModeShell). `html:has(...)` pinta
+   * también <html>/<body> (scrollbars, overscroll, sin parpadeo antes de
+   * hidratar) y desaparece solo al salir del panel: nada se refleja con JS.
+   * Contraste AA (sobre bg-base / surface): text-primary 16,1/14,4 ·
+   * text-secondary 7,9/7,1 · accent 10,1/9,1 · error 6,6/6,0 · success 8,6 (surface).
+   */
+  html:has([data-admin-invert]),
+  [data-admin-invert] {
+    --bc-bg-base: 20 21 12;          /* #14150C */
+    --bc-surface: 30 32 21;          /* #1E2015 */
+    --bc-text-primary: 241 240 230;  /* #F1F0E6 */
+    --bc-text-secondary: 169 171 153;/* #A9AB99 */
+    --bc-primary: 148 151 127;       /* #94977F (igual) */
+    --bc-accent: 191 195 163;        /* #BFC3A3 */
+    --bc-accent-hover: 208 212 184;  /* #D0D4B8 */
+    --bc-border: 52 55 42;           /* #34372A */
+    --bc-success: 52 211 153;        /* #34D399 */
+    --bc-error: 248 113 113;         /* #F87171 */
+  }
+  html:has([data-admin-invert]) {
+    color-scheme: dark;
   }
 
   body {
@@ -43,6 +71,14 @@
   /* Evita FOUC en elementos animados por GSAP (Reveal, Hero). */
   .gsap-init {
     opacity: 0;
+  }
+  /* Cortina del modo admin (GSAP): el contenido arranca recortado y barre de izquierda a derecha. */
+  .admin-curtain-init {
+    clip-path: inset(0 100% 0 0);
+  }
+  /* Velo de salida (paleta de la tienda); solo se anima con JS. */
+  .admin-veil {
+    clip-path: inset(0 100% 0 0);
   }
 }
 
@@ -91,5 +127,12 @@ html.lenis body {
 @media (prefers-reduced-motion: reduce) {
   .gsap-init {
     opacity: 1 !important;
+  }
+  /* Sin barrido: el modo admin aparece ya aplicado. */
+  .admin-curtain-init {
+    clip-path: none !important;
+  }
+  .admin-veil {
+    display: none !important;
   }
 }

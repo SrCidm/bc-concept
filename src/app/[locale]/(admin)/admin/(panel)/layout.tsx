@@ -1,4 +1,7 @@
+import { isPaletteInvertUser } from "@/lib/auth/adminFlags";
 import { requireAdminPage } from "@/lib/auth/requireAdmin";
+import { AdminModeShell } from "@/components/admin/AdminModeShell";
+import { AdminSessionMarker } from "@/components/admin/AdminSessionMarker";
 import { AdminTopBar } from "@/components/admin/AdminTopBar";
 
 /**
@@ -6,11 +9,17 @@ import { AdminTopBar } from "@/components/admin/AdminTopBar";
  * el email), pero NO es la frontera de seguridad: los layouts de Next no se
  * re-ejecutan en navegación cliente. Cada page.tsx llama a requireAdminPage()
  * por su cuenta y el acceso a datos con coste exige la sesión él mismo.
+ *
+ * Modo admin (3.2b): solo las cuentas de ADMIN_PALETTE_INVERT_EMAILS (Sergio)
+ * ven la paleta invertida y la cortina; se decide aquí, en servidor, con el
+ * email ya verificado. Para el resto el panel se renderiza tal cual, sin
+ * atributo ni envoltorio.
  */
 export default async function PanelLayout({ children }: { children: React.ReactNode }) {
   const admin = await requireAdminPage();
+  const invert = isPaletteInvertUser(admin.email);
 
-  return (
+  const chrome = (
     <>
       <AdminTopBar email={admin.email} />
       <main
@@ -19,6 +28,13 @@ export default async function PanelLayout({ children }: { children: React.ReactN
       >
         {children}
       </main>
+    </>
+  );
+
+  return (
+    <>
+      <AdminSessionMarker />
+      {invert ? <AdminModeShell>{chrome}</AdminModeShell> : chrome}
     </>
   );
 }

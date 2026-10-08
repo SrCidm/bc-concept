@@ -152,6 +152,12 @@
       }
     }
   },
+  "siteRibbon": {
+    "label": "Sesión de administración",
+    "session": "Sesión admin",
+    "toPanel": "Ir al panel",
+    "viewAsCustomer": "Ver como cliente"
+  },
   "search": {
     "label": "Buscar productos",
     "placeholder": "Buscar"

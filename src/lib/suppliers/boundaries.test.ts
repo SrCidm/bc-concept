@@ -162,4 +162,46 @@ describe("fronteras de la regla #1 (coste solo en superficies admin)", () => {
       .map((f) => f.rel);
     expect(importers).toEqual(["lib/suppliers/registry.ts"]);
   });
+
+  test("el storefront sigue estático: (site) y la cinta no leen sesión ni cookies/headers en servidor", () => {
+    const siteFiles = files.filter(
+      (f) => f.rel.startsWith("app/[locale]/(site)/") || f.rel === "components/layout/AdminRibbon.tsx"
+    );
+    expect(siteFiles.length).toBeGreaterThan(0);
+    const offenders = siteFiles
+      .filter((f) => /@\/lib\/auth\//.test(f.src) || /(cookies|headers)\s*\(/.test(f.src.replace(/\/\*[\s\S]*?\*\/|\/\/.*$/gm, "")))
+      .map((f) => f.rel);
+    expect(offenders).toEqual([]);
+    const layout = files.find((f) => f.rel === "app/[locale]/(site)/layout.tsx");
+    expect(layout?.src).not.toMatch(/next\/headers/);
+    expect(layout?.src).toMatch(/<AdminRibbon\s*\/>/);
+  });
+
+  test("cookie marcadora bc_admin: la fija el panel, la lee la cinta y la borra el logout", () => {
+    const marker = files.find((f) => f.rel === "components/admin/AdminSessionMarker.tsx");
+    const ribbon = files.find((f) => f.rel === "components/layout/AdminRibbon.tsx");
+    const logout = files.find((f) => f.rel === "app/api/admin/auth/logout/route.ts");
+    expect(marker?.src).toMatch(/ADMIN_MARKER_COOKIE\s*=\s*"bc_admin"/);
+    expect(ribbon?.src).toMatch(/COOKIE\s*=\s*"bc_admin"/);
+    expect(logout?.src).toMatch(/cookies\.set\(\s*"bc_admin"\s*,\s*""[^)]*maxAge:\s*0/);
+    // La cookie es cosmética: ningún servidor la usa para decidir acceso.
+    const readers = files
+      .filter((f) => /bc_admin/.test(f.src))
+      .map((f) => f.rel)
+      .sort();
+    expect(readers).toEqual([
+      "app/api/admin/auth/logout/route.ts",
+      "components/admin/AdminSessionMarker.tsx",
+      "components/layout/AdminRibbon.tsx",
+    ]);
+  });
+
+  test("la paleta invertida solo se activa para isPaletteInvertUser (decisión en servidor, un único sitio)", () => {
+    const layout = files.find((f) => f.rel === "app/[locale]/(admin)/admin/(panel)/layout.tsx");
+    expect(layout?.src).toMatch(/isPaletteInvertUser\(admin\.email\)/);
+    expect(layout?.src).toMatch(/invert\s*\?\s*<AdminModeShell>/);
+    // El atributo solo lo renderiza el shell; nadie más lo pone (ni en cliente ni en <html>).
+    const setters = files.filter((f) => /data-admin-invert/.test(f.src.replace(/\/\*[\s\S]*?\*\/|\/\/.*$/gm, ""))).map((f) => f.rel);
+    expect(setters).toEqual(["components/admin/AdminModeShell.tsx"]);
+  });
 });
