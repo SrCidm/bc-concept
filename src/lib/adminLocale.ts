@@ -12,3 +12,13 @@ export function adminSpanishPath(pathname: string): string | null {
   }
   return null;
 }
+
+/**
+ * ¿Es una ruta del área admin sin prefijo de idioma (`/admin`, `/admin/**`)?
+ * Esas rutas no deben negociar idioma: con la cookie NEXT_LOCALE=en (que deja
+ * la tienda en inglés) next-intl las redirigiría a /en/admin y adminSpanishPath
+ * las devolvería a /admin: bucle de redirecciones.
+ */
+export function isAdminPath(pathname: string): boolean {
+  return pathname === "/admin" || pathname.startsWith("/admin/");
+}
