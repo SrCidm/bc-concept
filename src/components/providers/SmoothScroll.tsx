@@ -8,15 +8,20 @@ import { usePathname } from "@/i18n/navigation";
 /**
  * Scroll suave (Lenis) sincronizado con el ticker de GSAP y ScrollTrigger.
  * · No se inicializa con prefers-reduced-motion: reduce.
+ * · No se inicializa en el área admin (/admin/**): en un panel de trabajo la
+ *   inercia del scroll estorba. El layout raíz persiste entre storefront y
+ *   admin, así que el efecto depende de `isAdmin` y se (des)monta al cruzar.
  * · Touch nativo (syncTouch:false): solo suaviza rueda/trackpad.
  * · Refresca ScrollTrigger cuando cambia la altura del documento
  *   (el catálogo hace streaming) y al navegar.
  */
 export function SmoothScroll() {
   const pathname = usePathname();
+  const isAdmin = pathname === "/admin" || pathname.startsWith("/admin/");
   const lenisRef = useRef<Lenis | null>(null);
 
   useEffect(() => {
+    if (isAdmin) return;
     const mm = gsap.matchMedia();
 
     mm.add(MOTION_OK, () => {
@@ -54,7 +59,7 @@ export function SmoothScroll() {
       observer.disconnect();
       mm.revert();
     };
-  }, []);
+  }, [isAdmin]);
 
   // Nueva ruta: arriba del todo sin animar (Lenis conserva su propio destino).
   useEffect(() => {

@@ -35,20 +35,6 @@
     "errorBody": "A temporary problem occurred. Please try again in a moment.",
     "retry": "Try again"
   },
-  "admin": {
-    "login": {
-      "title": "Admin access",
-      "intro": "Enter your admin email. If it is authorised, we will send you a sign-in link.",
-      "emailLabel": "Email address",
-      "submit": "Send link",
-      "sending": "Sending…",
-      "sent": "If the email is authorised, you will receive a link shortly.",
-      "error": "We couldn't send the link. Please try again.",
-      "linkInvalid": "The link is invalid or has expired. Request a new one.",
-      "signedInAs": "Signed in as {email}",
-      "signOut": "Sign out"
-    }
-  },
   "search": {
     "label": "Search products",
     "placeholder": "Search"

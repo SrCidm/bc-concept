@@ -46,7 +46,21 @@
       "error": "No hemos podido enviar el enlace. Inténtalo de nuevo.",
       "linkInvalid": "El enlace no es válido o ha caducado. Solicita uno nuevo.",
       "signedInAs": "Sesión iniciada como {email}",
+      "signOut": "Cerrar sesión",
+      "goToPanel": "Ir al panel",
+      "notAuthorized": "La cuenta {email} no tiene acceso al panel.",
+      "notAuthorizedNoEmail": "Esta cuenta no tiene acceso al panel."
+    },
+    "topbar": {
+      "skip": "Saltar al contenido",
+      "navLabel": "Navegación del panel",
+      "nav": { "import": "Importar" },
+      "backToStore": "Volver a la tienda",
       "signOut": "Cerrar sesión"
+    },
+    "import": {
+      "title": "Importar desde BigBuy",
+      "stub": "El buscador del catálogo y los resultados llegan en las siguientes fases. Por ahora, esta pantalla comprueba que el área de administración y su guarda de acceso funcionan."
     }
   },
   "search": {

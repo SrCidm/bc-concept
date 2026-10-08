@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { parseAdminEmails, requireAdmin, type AdminUser } from "./requireAdmin";
+import { ADMIN_LOGIN_PATH, parseAdminEmails, requireAdmin, requireAdminPage, resolveAdmin, type AdminUser } from "./requireAdmin";
 
 const admin: AdminUser = { id: "u1", email: "Yosra@Example.com", emailConfirmed: true };
 
@@ -108,5 +108,75 @@ describe("parseAdminEmails", () => {
   test("normaliza, recorta y descarta vacíos", () => {
     expect(Array.from(parseAdminEmails(" A@x.com , b@X.com ,, "))).toEqual(["a@x.com", "b@x.com"]);
     expect(parseAdminEmails(undefined).size).toBe(0);
+  });
+});
+
+describe("resolveAdmin (decisión pura compartida por API y páginas)", () => {
+  const ok: AdminUser = { id: "u1", email: "yosra@bc.com", emailConfirmed: true };
+
+  test("401 sin sesión, 403 no admin (con el email de la sesión), ok admin", async () => {
+    expect(await resolveAdmin({ getUser: async () => null, adminEmails: "yosra@bc.com" })).toMatchObject({ ok: false, status: 401, code: "unauthenticated" });
+    expect(await resolveAdmin({ getUser: async () => ok, adminEmails: "otra@bc.com" })).toMatchObject({ ok: false, status: 403, code: "forbidden", email: "yosra@bc.com" });
+    expect(await resolveAdmin({ getUser: async () => ok, adminEmails: "yosra@bc.com" })).toMatchObject({ ok: true, email: "yosra@bc.com" });
+  });
+
+  test("el 401 no lleva email y el 403 nunca se convierte en ok con lista vacía", async () => {
+    const d = await resolveAdmin({ getUser: async () => null, adminEmails: "x@y.z" });
+    expect(d.ok === false && d.email).toBeNull();
+    expect((await resolveAdmin({ getUser: async () => ok, adminEmails: "" })).ok).toBe(false);
+  });
+});
+
+describe("requireAdminPage (guarda de páginas)", () => {
+  /** `redirect` de Next lanza; el espía hace lo mismo para que no se siga ejecutando. */
+  function spy() {
+    const calls: string[] = [];
+    const redirectTo = ((path: string): never => {
+      calls.push(path);
+      throw new Error(`NEXT_REDIRECT:${path}`);
+    }) as (path: string) => never;
+    return { calls, redirectTo };
+  }
+
+  test("sin sesión → redirige a /admin/login y NO devuelve datos", async () => {
+    const { calls, redirectTo } = spy();
+    await expect(requireAdminPage({ getUser: async () => null, adminEmails: "yosra@bc.com", redirectTo })).rejects.toThrow("NEXT_REDIRECT");
+    expect(calls).toEqual([ADMIN_LOGIN_PATH]);
+    expect(ADMIN_LOGIN_PATH).toBe("/admin/login");
+  });
+
+  test("sesión de una cuenta que no es admin → también redirige", async () => {
+    const { calls, redirectTo } = spy();
+    await expect(
+      requireAdminPage({ getUser: async () => ({ id: "u", email: "intruso@bc.com", emailConfirmed: true }), adminEmails: "yosra@bc.com", redirectTo })
+    ).rejects.toThrow("NEXT_REDIRECT");
+    expect(calls).toEqual([ADMIN_LOGIN_PATH]);
+  });
+
+  test("ADMIN_EMAILS vacía → redirige aunque haya sesión (fail-closed)", async () => {
+    const { calls, redirectTo } = spy();
+    await expect(
+      requireAdminPage({ getUser: async () => ({ id: "u", email: "yosra@bc.com", emailConfirmed: true }), adminEmails: "", redirectTo })
+    ).rejects.toThrow();
+    expect(calls).toHaveLength(1);
+  });
+
+  test("admin válida → devuelve su identidad y no redirige", async () => {
+    const { calls, redirectTo } = spy();
+    const me = await requireAdminPage({
+      getUser: async () => ({ id: "u9", email: "  Yosra@BC.com ", emailConfirmed: true }),
+      adminEmails: "yosra@bc.com , hola@bc.com",
+      redirectTo,
+    });
+    expect(me).toEqual({ userId: "u9", email: "yosra@bc.com" });
+    expect(calls).toEqual([]);
+  });
+
+  test("Auth caído (excepción) → redirige, nunca abre", async () => {
+    const { calls, redirectTo } = spy();
+    await expect(
+      requireAdminPage({ getUser: async () => { throw new Error("auth down"); }, adminEmails: "yosra@bc.com", redirectTo })
+    ).rejects.toThrow();
+    expect(calls).toEqual([ADMIN_LOGIN_PATH]);
   });
 });

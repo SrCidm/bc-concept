@@ -35,6 +35,7 @@ const files = walk(SRC).map((f) => ({ path: f, rel: relative(SRC, f).split(sep).
 /** Quién puede importar módulos con coste. */
 const ALLOWED = (rel: string) =>
   rel.startsWith("app/api/admin/") || // Route Handlers admin (tras requireAdmin)
+  rel.startsWith("app/[locale]/(admin)/") || // área admin (páginas con requireAdminPage)
   rel.startsWith("lib/suppliers/") ||
   rel.startsWith("lib/pricing/") ||
   rel.startsWith("lib/api/") ||
@@ -80,6 +81,45 @@ describe("fronteras de la regla #1 (coste solo en superficies admin)", () => {
       const declared = f.src.match(/export async function (GET|POST|PUT|PATCH|DELETE)\b/g) ?? [];
       expect({ route: f.rel, guarded: handlers.length }).toEqual({ route: f.rel, guarded: declared.length });
     }
+  });
+
+  test("cada page.tsx del panel llama a requireAdminPage() en su primera línea (el layout NO basta)", () => {
+    const panel = files.filter((f) => f.rel.startsWith("app/[locale]/(admin)/admin/(panel)/"));
+    const pages = panel.filter((f) => f.rel.endsWith("/page.tsx"));
+    expect(pages.length).toBeGreaterThan(0);
+    const unguarded = pages
+      .filter(
+        (f) =>
+          !/export default async function\s+\w*\s*\([^)]*\)\s*\{\s*(?:const\s+\w+\s*=\s*)?await requireAdminPage\(\)/.test(
+            f.src
+          )
+      )
+      .map((f) => f.rel);
+    expect(unguarded).toEqual([]);
+    // El layout también la llama (defensa en profundidad), pero no sustituye a las páginas.
+    const layout = panel.find((f) => f.rel.endsWith("/(panel)/layout.tsx"));
+    expect(layout?.src).toContain("requireAdminPage()");
+  });
+
+  test("las páginas del panel son Server Components (ni 'use client' ni datos desde el navegador)", () => {
+    const clientPages = files
+      .filter((f) => f.rel.startsWith("app/[locale]/(admin)/admin/(panel)/") && /\/(page|layout)\.tsx$/.test(f.rel))
+      .filter((f) => /^\s*["']use client["']/.test(f.src))
+      .map((f) => f.rel);
+    expect(clientPages).toEqual([]);
+  });
+
+  test("el área admin NO hereda el cromo del storefront (Header/Footer solo en (site))", () => {
+    const adminFiles = files.filter((f) => f.rel.startsWith("app/[locale]/(admin)/"));
+    const leaking = adminFiles
+      .filter((f) => /components\/layout\/(Header|Footer|FooterCurtain)/.test(f.src))
+      .map((f) => f.rel);
+    expect(leaking).toEqual([]);
+    const site = files.find((f) => f.rel === "app/[locale]/(site)/layout.tsx");
+    expect(site?.src).toMatch(/<Header\s*\/>/);
+    expect(site?.src).toMatch(/<Footer\s*\/>/);
+    const root = files.find((f) => f.rel === "app/[locale]/layout.tsx");
+    expect(root?.src).not.toMatch(/<Header\s*\/>|<Footer\s*\/>/);
   });
 
   test("ningún componente cliente importa módulos server-only de proveedores", () => {

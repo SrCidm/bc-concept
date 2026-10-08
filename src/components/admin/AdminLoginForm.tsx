@@ -26,7 +26,7 @@ export function AdminLoginForm() {
         email: value,
         options: {
           shouldCreateUser: false,
-          emailRedirectTo: `${window.location.origin}/api/admin/auth/callback?next=/admin/login`,
+          emailRedirectTo: `${window.location.origin}/api/admin/auth/callback?next=/admin/import`,
         },
       });
       setStatus("sent");
