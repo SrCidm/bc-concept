@@ -60,7 +60,96 @@
     },
     "import": {
       "title": "Importar desde BigBuy",
-      "stub": "El buscador del catálogo y los resultados llegan en las siguientes fases. Por ahora, esta pantalla comprueba que el área de administración y su guarda de acceso funcionan."
+      "intro": "Explora el catálogo del proveedor y revisa coste y stock antes de decidir qué entra en la tienda.",
+      "search": {
+        "label": "Buscar producto",
+        "placeholder": "Nombre o referencia",
+        "submit": "Buscar",
+        "submitting": "Buscando…",
+        "clear": "Limpiar",
+        "filtersLabel": "Filtros",
+        "euOnly": "Solo almacén UE",
+        "inStockOnly": "Solo con stock"
+      },
+      "mock": {
+        "title": "Datos de ejemplo",
+        "body": "Este catálogo es una simulación con la forma de BigBuy. Nada de lo que ves viene del proveedor real."
+      },
+      "results": {
+        "label": "Resultados del catálogo",
+        "summary": "{shown, plural, one {# producto} other {# productos}} de {fetched} revisados en la página {page}",
+        "summarySearch": "{shown, plural, one {# coincidencia} other {# coincidencias}} para «{q}» entre {fetched} revisados en la página {page}",
+        "searchNote": "La búsqueda por texto filtra los productos de cada página; usa «Siguiente» para seguir buscando."
+      },
+      "card": {
+        "reference": "Ref. {sku}",
+        "cost": "Coste",
+        "stock": "Stock",
+        "stockEu": "{eu} en UE",
+        "stockOther": "{other} fuera de la UE",
+        "noStockEu": "Sin stock UE",
+        "noStock": "Sin stock",
+        "delivery": "{min}–{max} días",
+        "deliverySingle": "{days} días",
+        "noImage": "Sin imagen"
+      },
+      "pagination": {
+        "label": "Paginación de resultados",
+        "prev": "Anterior",
+        "next": "Siguiente",
+        "page": "Página {page}"
+      },
+      "empty": {
+        "title": "No hay productos con estos filtros",
+        "body": "Prueba a desactivar «Solo con stock» o «Solo almacén UE» para ver más catálogo.",
+        "searchTitle": "Sin coincidencias en esta página",
+        "searchBody": "Ningún producto de esta página contiene «{q}». Prueba otra palabra, quita filtros o pasa a la página siguiente.",
+        "clear": "Limpiar búsqueda",
+        "nextPage": "Ver la página siguiente"
+      },
+      "loading": "Cargando el catálogo…",
+      "error": {
+        "retry": "Reintentar",
+        "clear": "Limpiar búsqueda",
+        "title": "No se ha podido cargar el catálogo",
+        "not_configured": {
+          "title": "BigBuy aún no está conectado",
+          "body": "Falta la clave de API del proveedor. Cuando esté configurada, el catálogo aparecerá aquí."
+        },
+        "unauthorized": {
+          "title": "BigBuy ha rechazado la clave de API",
+          "body": "Revisa que la clave sea correcta y esté activa, y vuelve a intentarlo."
+        },
+        "rate_limited": {
+          "title": "BigBuy está limitando las peticiones",
+          "body": "Espera unos segundos y vuelve a intentarlo."
+        },
+        "timeout": {
+          "title": "BigBuy no ha respondido a tiempo",
+          "body": "Puede ser algo puntual. Vuelve a intentarlo en un momento."
+        },
+        "upstream": {
+          "title": "BigBuy no está disponible ahora mismo",
+          "body": "El error es del proveedor, no de tu búsqueda. Vuelve a intentarlo en unos minutos."
+        },
+        "bad_response": {
+          "title": "BigBuy ha respondido algo inesperado",
+          "body": "La respuesta no tiene el formato esperado. Si se repite, avisa a Sergio."
+        },
+        "invalid_request": {
+          "title": "La búsqueda no es válida",
+          "body": "Alguno de los parámetros de la dirección está fuera de rango. Limpia la búsqueda para empezar de nuevo."
+        },
+        "generic": {
+          "title": "No se ha podido cargar el catálogo",
+          "body": "Ha ocurrido un error inesperado. Vuelve a intentarlo."
+        }
+      },
+      "boundary": {
+        "title": "Algo ha fallado al mostrar esta pantalla",
+        "body": "Puedes volver a intentarlo. Si el error se repite, avisa a Sergio.",
+        "retry": "Reintentar"
+      }
     }
   },
   "search": {
