@@ -19,8 +19,10 @@ import { ADMIN_CURTAIN_COOKIE } from "@/lib/adminCookies";
  *   renderiza CLARO y aquí se hace la transición a oscuro y se fija la cookie.
  * · Con cookie: el servidor ya renderiza oscuro (F5, navegación interna): sin
  *   parpadeo ni transición.
- * · "Volver a la tienda": la misma transición a la inversa (oscuro→claro) y luego
- *   se navega. "Cerrar sesión" (POST + recarga) no pasa por aquí.
+ * · "Volver a la tienda": la misma transición a la inversa (oscuro→claro), se borra
+ *   la cookie y luego se navega: cada entrada tienda→panel repite la transición.
+ *   F5 y la navegación interna del panel no (la cookie sigue ahí). "Cerrar
+ *   sesión" (POST + recarga) no pasa por aquí: lo borra el logout.
  * · Sin soporte de View Transitions o con prefers-reduced-motion: cambio instantáneo.
  *   Sin JS: panel claro, visible y usable.
  */
@@ -48,6 +50,11 @@ function setCurtainCookie() {
   const secure = window.location.protocol === "https:" ? "; Secure" : "";
   // Sin Max-Age: cookie de sesión del navegador.
   document.cookie = `${ADMIN_CURTAIN_COOKIE}=1; Path=/; SameSite=Lax${secure}`;
+}
+
+/** Al salir a la tienda: la próxima entrada tienda→panel vuelve a ver la transición. */
+function clearCurtainCookie() {
+  document.cookie = `${ADMIN_CURTAIN_COOKIE}=; Path=/; Max-Age=0; SameSite=Lax`;
 }
 
 export function AdminModeShell({
@@ -93,6 +100,7 @@ export function AdminModeShell({
       leavingRef.current = true;
       const finish = () => {
         leavingRef.current = false;
+        clearCurtainCookie(); // ya no estamos "dentro": la siguiente entrada repite la transición
         go();
       };
       if (!darkRef.current || !canTransition()) {

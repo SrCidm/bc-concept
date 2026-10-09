@@ -207,7 +207,7 @@ describe("fronteras de la regla #1 (coste solo en superficies admin)", () => {
     expect(setters).toEqual(["components/admin/AdminModeShell.tsx"]);
   });
 
-  test("cookie de sesión de la transición: la fija el shell (cliente), la lee solo el panel y la borra el logout", () => {
+  test("cookie de sesión de la transición: la fija y la borra al salir el shell (cliente), la lee solo el panel y la borra el logout", () => {
     const code = (src: string) => src.replace(/\/\*[\s\S]*?\*\/|\/\/.*$/gm, "");
     // El literal vive en un único sitio; el resto usa la constante.
     const literal = files.filter((f) => /bc_admin_curtain/.test(code(f.src))).map((f) => f.rel);
@@ -222,7 +222,12 @@ describe("fronteras de la regla #1 (coste solo en superficies admin)", () => {
     const shell = files.find((f) => f.rel === "components/admin/AdminModeShell.tsx");
     // Cookie de sesión: sin Max-Age/Expires.
     expect(shell?.src).toMatch(/document\.cookie\s*=\s*`\$\{ADMIN_CURTAIN_COOKIE\}=1; Path=\/; SameSite=Lax/);
-    expect(code(shell?.src ?? "")).not.toMatch(/Max-Age|Expires/i);
+    // La que se FIJA es de sesión (sin Max-Age/Expires); solo la de BORRAR lleva Max-Age=0.
+    const setLine = (shell?.src ?? "").match(/document\.cookie\s*=\s*`\$\{ADMIN_CURTAIN_COOKIE\}=1[^`]*`/)?.[0] ?? "";
+    expect(setLine).not.toMatch(/Max-Age|Expires/i);
+    expect(shell?.src).toMatch(/document\.cookie\s*=\s*`\$\{ADMIN_CURTAIN_COOKIE\}=; Path=\/; Max-Age=0/);
+    // Se borra al salir a la tienda, justo antes de navegar (y no antes de la transición).
+    expect(shell?.src).toMatch(/const finish = \(\) => \{[^}]*clearCurtainCookie\(\);[^}]*go\(\);/);
     const logout = files.find((f) => f.rel === "app/api/admin/auth/logout/route.ts");
     expect(logout?.src).toMatch(/cookies\.set\(\s*ADMIN_CURTAIN_COOKIE\s*,\s*""[^)]*maxAge:\s*0/);
   });

@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 
 /** Nombre de la cookie marcadora que lee la cinta del storefront. */
-export const ADMIN_MARKER_COOKIE = "bc_admin";
+const ADMIN_MARKER_COOKIE = "bc_admin";
 const MAX_AGE_S = 60 * 60 * 24 * 7;
 
 /**
