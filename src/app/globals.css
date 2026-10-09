@@ -9,9 +9,7 @@
  * estas variables (canales RGB, para poder usar opacidad: bc-primary/10).
  */
 @layer base {
-  /* `.bc-theme-light` restablece la paleta de la tienda dentro del modo admin (cortina de salida). */
-  :root,
-  .bc-theme-light {
+  :root {
     --bc-bg-base: 245 245 240;       /* #F5F5F0 fondo principal (blanco hueso) */
     --bc-surface: 255 255 255;       /* #FFFFFF tarjetas / superficies */
     --bc-text-primary: 22 23 8;      /* #161708 texto principal (negro oliva) */
@@ -72,14 +70,7 @@
   .gsap-init {
     opacity: 0;
   }
-  /* Cortina del modo admin (GSAP): el contenido arranca recortado y barre de izquierda a derecha. */
-  .admin-curtain-init {
-    clip-path: inset(0 100% 0 0);
-  }
-  /* Velo de salida (paleta de la tienda); solo se anima con JS. */
-  .admin-veil {
-    clip-path: inset(0 100% 0 0);
-  }
+
 }
 
 /* Lenis — CSS recomendado (el scroll suave lo gestiona JS, no CSS). */
@@ -128,11 +119,61 @@ html.lenis body {
   .gsap-init {
     opacity: 1 !important;
   }
-  /* Sin barrido: el modo admin aparece ya aplicado. */
-  .admin-curtain-init {
-    clip-path: none !important;
+}
+
+/**
+ * Transición del modo admin (View Transitions API; ver AdminModeShell).
+ * `html.admin-vt` solo existe mientras dura la transición: no toca ninguna otra.
+ * · old(root): quieta debajo, sin fundido (se ve el contenido real "de antes").
+ * · new(root): máscara lineal de borde difuminado (18 % del ancho) que barre de
+ *   izquierda a derecha: el contenido real pasa de claro a oscuro (o al revés)
+ *   justo en el borde. --admin-sweep es la posición del borde (0 % = todo oculto,
+ *   118 % = borde ya fuera: todo visible).
+ * · 1,2 s con ease-in-out (sin golpe inicial). Es un momento raro (1.ª entrada
+ *   de la sesión / salir a la tienda), no una interacción frecuente.
+ * Con reduced-motion el JS ni la lanza; la última regla es la segunda red.
+ */
+@property --admin-sweep {
+  syntax: "<percentage>";
+  inherits: false;
+  /* Nunca 0%: el minificador lo reduce a `0`, que no es un <percentage> válido y anula @property. */
+  initial-value: 0.01%;
+}
+
+@keyframes admin-sweep {
+  from {
+    --admin-sweep: 0.01%;
   }
-  .admin-veil {
-    display: none !important;
+  to {
+    --admin-sweep: 118%;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  html.admin-vt::view-transition-old(root),
+  html.admin-vt::view-transition-new(root) {
+    animation: none;
+    mix-blend-mode: normal;
+  }
+  html.admin-vt::view-transition-new(root) {
+    -webkit-mask-image: linear-gradient(
+      to right,
+      CanvasText calc(var(--admin-sweep) - 18%),
+      transparent var(--admin-sweep)
+    );
+    mask-image: linear-gradient(
+      to right,
+      CanvasText calc(var(--admin-sweep) - 18%),
+      transparent var(--admin-sweep)
+    );
+    animation: admin-sweep 1.2s cubic-bezier(0.65, 0, 0.35, 1) both;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html.admin-vt::view-transition-group(*),
+  html.admin-vt::view-transition-old(*),
+  html.admin-vt::view-transition-new(*) {
+    animation: none !important;
   }
 }

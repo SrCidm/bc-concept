@@ -1,3 +1,5 @@
+import { cookies } from "next/headers";
+import { ADMIN_CURTAIN_COOKIE, adminModeState } from "@/lib/adminCookies";
 import { isPaletteInvertUser } from "@/lib/auth/adminFlags";
 import { requireAdminPage } from "@/lib/auth/requireAdmin";
 import { AdminModeShell } from "@/components/admin/AdminModeShell";
@@ -11,13 +13,16 @@ import { AdminTopBar } from "@/components/admin/AdminTopBar";
  * por su cuenta y el acceso a datos con coste exige la sesión él mismo.
  *
  * Modo admin (3.2b): solo las cuentas de ADMIN_PALETTE_INVERT_EMAILS (Sergio)
- * ven la paleta invertida y la cortina; se decide aquí, en servidor, con el
- * email ya verificado. Para el resto el panel se renderiza tal cual, sin
- * atributo ni envoltorio.
+ * ven la paleta invertida y la transición; se decide aquí, en servidor, con el
+ * email ya verificado. Primera entrada de la sesión (sin cookie bc_admin_curtain):
+ * render claro y el cliente hace la transición a oscuro; con cookie, oscuro directo.
+ * Para el resto el panel se renderiza tal cual, sin atributo ni envoltorio.
  */
 export default async function PanelLayout({ children }: { children: React.ReactNode }) {
   const admin = await requireAdminPage();
   const invert = isPaletteInvertUser(admin.email);
+  // La cookie de sesión solo se mira para quien tiene el guiño (Yosra: nada cambia).
+  const mode = adminModeState(invert, invert && cookies().has(ADMIN_CURTAIN_COOKIE));
 
   const chrome = (
     <>
@@ -34,7 +39,7 @@ export default async function PanelLayout({ children }: { children: React.ReactN
   return (
     <>
       <AdminSessionMarker />
-      {invert ? <AdminModeShell>{chrome}</AdminModeShell> : chrome}
+      {mode.shell ? <AdminModeShell initiallyDark={mode.initiallyDark}>{chrome}</AdminModeShell> : chrome}
     </>
   );
 }

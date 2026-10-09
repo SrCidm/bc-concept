@@ -185,8 +185,9 @@ describe("fronteras de la regla #1 (coste solo en superficies admin)", () => {
     expect(ribbon?.src).toMatch(/COOKIE\s*=\s*"bc_admin"/);
     expect(logout?.src).toMatch(/cookies\.set\(\s*"bc_admin"\s*,\s*""[^)]*maxAge:\s*0/);
     // La cookie es cosmética: ningún servidor la usa para decidir acceso.
+    const stripComments = (src: string) => src.replace(/\/\*[\s\S]*?\*\/|\/\/.*$/gm, "");
     const readers = files
-      .filter((f) => /bc_admin/.test(f.src))
+      .filter((f) => /\bbc_admin\b/.test(stripComments(f.src)))
       .map((f) => f.rel)
       .sort();
     expect(readers).toEqual([
@@ -199,9 +200,42 @@ describe("fronteras de la regla #1 (coste solo en superficies admin)", () => {
   test("la paleta invertida solo se activa para isPaletteInvertUser (decisión en servidor, un único sitio)", () => {
     const layout = files.find((f) => f.rel === "app/[locale]/(admin)/admin/(panel)/layout.tsx");
     expect(layout?.src).toMatch(/isPaletteInvertUser\(admin\.email\)/);
-    expect(layout?.src).toMatch(/invert\s*\?\s*<AdminModeShell>/);
+    expect(layout?.src).toMatch(/adminModeState\(\s*invert\s*,\s*invert\s*&&\s*cookies\(\)\.has\(ADMIN_CURTAIN_COOKIE\)\s*\)/);
+    expect(layout?.src).toMatch(/mode\.shell\s*\?\s*<AdminModeShell/);
     // El atributo solo lo renderiza el shell; nadie más lo pone (ni en cliente ni en <html>).
     const setters = files.filter((f) => /data-admin-invert/.test(f.src.replace(/\/\*[\s\S]*?\*\/|\/\/.*$/gm, ""))).map((f) => f.rel);
     expect(setters).toEqual(["components/admin/AdminModeShell.tsx"]);
+  });
+
+  test("cookie de sesión de la transición: la fija el shell (cliente), la lee solo el panel y la borra el logout", () => {
+    const code = (src: string) => src.replace(/\/\*[\s\S]*?\*\/|\/\/.*$/gm, "");
+    // El literal vive en un único sitio; el resto usa la constante.
+    const literal = files.filter((f) => /bc_admin_curtain/.test(code(f.src))).map((f) => f.rel);
+    expect(literal).toEqual(["lib/adminCookies.ts"]);
+    const users = files.filter((f) => /ADMIN_CURTAIN_COOKIE/.test(code(f.src))).map((f) => f.rel).sort();
+    expect(users).toEqual([
+      "app/[locale]/(admin)/admin/(panel)/layout.tsx",
+      "app/api/admin/auth/logout/route.ts",
+      "components/admin/AdminModeShell.tsx",
+      "lib/adminCookies.ts",
+    ]);
+    const shell = files.find((f) => f.rel === "components/admin/AdminModeShell.tsx");
+    // Cookie de sesión: sin Max-Age/Expires.
+    expect(shell?.src).toMatch(/document\.cookie\s*=\s*`\$\{ADMIN_CURTAIN_COOKIE\}=1; Path=\/; SameSite=Lax/);
+    expect(code(shell?.src ?? "")).not.toMatch(/Max-Age|Expires/i);
+    const logout = files.find((f) => f.rel === "app/api/admin/auth/logout/route.ts");
+    expect(logout?.src).toMatch(/cookies\.set\(\s*ADMIN_CURTAIN_COOKIE\s*,\s*""[^)]*maxAge:\s*0/);
+  });
+
+  test("la transición usa View Transitions con fallback instantáneo y reduced-motion; no queda rastro de la cortina GSAP", () => {
+    const shell = files.find((f) => f.rel === "components/admin/AdminModeShell.tsx");
+    expect(shell?.src).toMatch(/startViewTransition/);
+    expect(shell?.src).toMatch(/prefers-reduced-motion: reduce/);
+    expect(shell?.src).not.toMatch(/gsap/i);
+    const css = readFileSync(join(SRC, "app", "globals.css"), "utf8");
+    expect(css).toMatch(/html\.admin-vt::view-transition-new\(root\)/);
+    expect(css).toMatch(/cubic-bezier\(0\.65, 0, 0\.35, 1\)/);
+    expect(css).toMatch(/@media \(prefers-reduced-motion: reduce\)[\s\S]*admin-vt::view-transition-new/);
+    expect(css).not.toMatch(/admin-curtain-init|admin-veil/);
   });
 });

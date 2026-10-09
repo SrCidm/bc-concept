@@ -1,25 +1,32 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef } from "react";
-import { EASE_OUT, MOTION_OK, gsap } from "@/lib/motion/gsap";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { flushSync } from "react-dom";
+import { ADMIN_CURTAIN_COOKIE } from "@/lib/adminCookies";
 
 /**
- * "Modo admin" (3.2b): paleta invertida + cortina GSAP izquierda→derecha.
- * Solo se monta para las cuentas de ADMIN_PALETTE_INVERT_EMAILS (la decisión
- * se toma en servidor, en (panel)/layout.tsx); para el resto este componente
- * no existe y el panel se ve en paleta clara, sin cortina.
+ * "Modo admin" (3.2b): paleta invertida que se ve CAMBIAR al pasar el borde.
+ * Solo se monta para las cuentas con el guiño (ADMIN_PALETTE_INVERT_EMAILS; la
+ * decisión es del servidor, en (panel)/layout.tsx). Para el resto no existe.
  *
- * · La paleta la aplica el atributo `data-admin-invert` (ver globals.css), ya
- *   renderizado en servidor: sin parpadeo al recargar.
- * · Entrada: el contenido arranca recortado (`.admin-curtain-init`) y barre a
- *   pantalla completa. Se omite al recargar la página (sin repetir el efecto
- *   en cada F5). `prefers-reduced-motion: reduce` → sin barrido (CSS + aquí).
- * · Salida a la tienda: un velo con la paleta de la tienda barre de izquierda a
- *   derecha y entonces se navega. "Cerrar sesión" (POST + recarga) no pasa por aquí.
+ * Transición = View Transitions API: `startViewTransition(() => cambiar la
+ * paleta)`. El navegador captura la pantalla ANTES (clara) y DESPUÉS (oscura) y
+ * globals.css barre la nueva con una máscara de borde difuminado de izquierda a
+ * derecha, con la vieja quieta debajo: se ve el contenido real cambiar de claro
+ * a oscuro justo en el borde.
+ *
+ * · Primera entrada de la sesión (sin cookie `bc_admin_curtain`): el servidor
+ *   renderiza CLARO y aquí se hace la transición a oscuro y se fija la cookie.
+ * · Con cookie: el servidor ya renderiza oscuro (F5, navegación interna): sin
+ *   parpadeo ni transición.
+ * · "Volver a la tienda": la misma transición a la inversa (oscuro→claro) y luego
+ *   se navega. "Cerrar sesión" (POST + recarga) no pasa por aquí.
+ * · Sin soporte de View Transitions o con prefers-reduced-motion: cambio instantáneo.
+ *   Sin JS: panel claro, visible y usable.
  */
 
 interface AdminModeContextValue {
-  /** Ejecuta el barrido de salida y llama a `go` al terminar (o ya, sin movimiento). */
+  /** Transición de salida (oscuro→claro) y entonces llama a `go`; o ya, sin transición. */
   leave: (go: () => void) => void;
 }
 
@@ -30,82 +37,79 @@ export function useAdminMode() {
   return useContext(AdminModeContext);
 }
 
-const ENTER_S = 0.85;
-const LEAVE_S = 0.7;
+/** Clase temporal en <html> que activa los estilos ::view-transition de globals.css. */
+const VT_CLASS = "admin-vt";
 
-/** ¿Esta carga de documento fue un F5? (y es reciente: no confundir con una entrada SPA posterior). */
-function isRecentReload(): boolean {
-  const nav = performance.getEntriesByType("navigation")[0] as PerformanceNavigationTiming | undefined;
-  return nav?.type === "reload" && performance.now() < 5000;
+function canTransition(): boolean {
+  return "startViewTransition" in document && !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 }
 
-export function AdminModeShell({ children }: { children: React.ReactNode }) {
-  const contentRef = useRef<HTMLDivElement>(null);
-  const veilRef = useRef<HTMLDivElement>(null);
+function setCurtainCookie() {
+  const secure = window.location.protocol === "https:" ? "; Secure" : "";
+  // Sin Max-Age: cookie de sesión del navegador.
+  document.cookie = `${ADMIN_CURTAIN_COOKIE}=1; Path=/; SameSite=Lax${secure}`;
+}
+
+export function AdminModeShell({
+  children,
+  initiallyDark,
+}: {
+  children: React.ReactNode;
+  initiallyDark: boolean;
+}) {
+  const [dark, setDark] = useState(initiallyDark);
+  const darkRef = useRef(dark);
+  darkRef.current = dark;
+  const pendingRef = useRef<Promise<void> | null>(null);
+  const startedRef = useRef(false);
   const leavingRef = useRef(false);
 
-  useEffect(() => {
-    const el = contentRef.current;
-    if (!el) return;
-    const mm = gsap.matchMedia();
+  /** Cambia la paleta con transición si se puede; instantáneo si no. */
+  const switchTo = useCallback((next: boolean): Promise<void> => {
+    const change = () => flushSync(() => setDark(next));
+    if (!canTransition()) {
+      change();
+      return Promise.resolve();
+    }
+    const root = document.documentElement;
+    root.classList.add(VT_CLASS);
+    const transition = document.startViewTransition(change);
+    return transition.finished
+      .catch(() => undefined)
+      .finally(() => root.classList.remove(VT_CLASS));
+  }, []);
 
-    mm.add(MOTION_OK, () => {
-      if (isRecentReload()) {
-        gsap.set(el, { clipPath: "none" });
+  useEffect(() => {
+    if (initiallyDark || startedRef.current) return;
+    startedRef.current = true; // StrictMode (dev) ejecuta el efecto dos veces
+    // La cookie va ANTES: un F5 a mitad de transición ya carga oscuro, sin repetirla.
+    setCurtainCookie();
+    pendingRef.current = switchTo(true);
+  }, [initiallyDark, switchTo]);
+
+  const leave = useCallback(
+    (go: () => void) => {
+      if (leavingRef.current) return;
+      leavingRef.current = true;
+      const finish = () => {
+        leavingRef.current = false;
+        go();
+      };
+      if (!darkRef.current || !canTransition()) {
+        finish();
         return;
       }
-      const tween = gsap.to(el, {
-        clipPath: "inset(0 0% 0 0)",
-        duration: ENTER_S,
-        ease: EASE_OUT,
-        // Al terminar, `none` INLINE (no clearProps: la clase .admin-curtain-init volvería a recortar).
-        onComplete: () => gsap.set(el, { clipPath: "none" }),
-      });
-      return () => {
-        tween.kill();
-      };
-    });
-
-    // Con reduced-motion el CSS ya anula el recorte; esto cubre el resto de casos sin barrido.
-    mm.add("(prefers-reduced-motion: reduce)", () => {
-      gsap.set(el, { clipPath: "none" });
-    });
-
-    return () => mm.revert();
-  }, []);
-
-  const leave = useCallback((go: () => void) => {
-    const veil = veilRef.current;
-    if (leavingRef.current) return;
-    if (!veil || !window.matchMedia(MOTION_OK).matches) {
-      go();
-      return;
-    }
-    leavingRef.current = true;
-    gsap.to(veil, {
-      clipPath: "inset(0 0% 0 0)",
-      duration: LEAVE_S,
-      ease: EASE_OUT,
-      onComplete: go,
-    });
-  }, []);
+      // Si la transición de entrada aún corre, se espera a que acabe.
+      (pendingRef.current ?? Promise.resolve()).then(() => switchTo(false)).then(finish);
+    },
+    [switchTo]
+  );
 
   const value = useMemo(() => ({ leave }), [leave]);
 
   return (
     <AdminModeContext.Provider value={value}>
-      {/* Sin JS no hay GSAP que quite el recorte: se anula aquí (igual que .gsap-init). */}
-      <noscript>
-        <style>{".admin-curtain-init{clip-path:none!important}"}</style>
-      </noscript>
-      <div ref={contentRef} data-admin-invert className="admin-curtain-init">
-        {children}
-      </div>
-      <div
-        ref={veilRef}
-        aria-hidden="true"
-        className="admin-veil bc-theme-light pointer-events-none fixed inset-0 z-[100] bg-bc-bg-base"
-      />
+      <div data-admin-invert={dark ? "" : undefined}>{children}</div>
     </AdminModeContext.Provider>
   );
 }
