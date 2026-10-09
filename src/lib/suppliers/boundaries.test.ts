@@ -38,11 +38,16 @@ function walk(dir: string, out: string[] = []): string[] {
  */
 const DTO_TYPES_IMPORT = /import\s+type\s+\{[^}]*\}\s+from\s+["']@\/lib\/suppliers\/dto\.types["'];?/g;
 
+/** Contrato client-safe del flujo de importación (tipos y constantes, sin server-only): también admitido. */
+const IMPORT_TYPES_IMPORT = /import\s+(?:type\s+)?\{[^}]*\}\s+from\s+["']@\/lib\/admin\/import\.types["'];?/g;
+
 const files = walk(SRC).map((f) => {
   const rel = relative(SRC, f).split(sep).join("/");
   const raw = readFileSync(f, "utf8");
-  // Solo los componentes del panel pueden usar la excepción de tipos.
-  const src = rel.startsWith("components/admin/") ? raw.replace(DTO_TYPES_IMPORT, "") : raw;
+  // Solo los componentes del panel pueden usar estas dos excepciones.
+  const src = rel.startsWith("components/admin/")
+    ? raw.replace(DTO_TYPES_IMPORT, "").replace(IMPORT_TYPES_IMPORT, "")
+    : raw;
   return { path: f, rel, src };
 });
 
@@ -242,5 +247,59 @@ describe("fronteras de la regla #1 (coste solo en superficies admin)", () => {
     expect(css).toMatch(/cubic-bezier\(0\.65, 0, 0\.35, 1\)/);
     expect(css).toMatch(/@media \(prefers-reduced-motion: reduce\)[\s\S]*admin-vt::view-transition-new/);
     expect(css).not.toMatch(/admin-curtain-init|admin-veil/);
+  });
+
+  test("import.types.ts es client-safe: sin server-only y solo `import type` de otros módulos", () => {
+    const f = files.find((x) => x.rel === "lib/admin/import.types.ts");
+    expect(f).toBeDefined();
+    const code = f!.src.replace(/\/\*[\s\S]*?\*\/|\/\/.*$/gm, "");
+    expect(code).not.toContain("server-only");
+    for (const line of code.match(/^\s*import\b.*$/gm) ?? []) expect(line).toMatch(/^\s*import\s+type\b/);
+  });
+
+  test("la UI solo toca lib/admin vía import.types (cualquier otro import de lib/admin desde components se detecta)", () => {
+    const offenders = files
+      .filter((f) => f.rel.startsWith("components/"))
+      .filter((f) => /@\/lib\/admin\//.test(f.src))
+      .map((f) => f.rel);
+    expect(offenders).toEqual([]);
+  });
+
+  test("el cliente service role es solo de servidor (server-only)", () => {
+    const f = files.find((x) => x.rel === "lib/supabase/admin.ts");
+    expect(f?.src).toMatch(/^import "server-only";/m);
+  });
+
+  test("price_cost y demás datos internos NUNCA están en las superficies públicas de la BD", () => {
+    const BANNED = /price_cost|cost_currency|supplier_product_id|supplier_variant_id/;
+    const sql = readFileSync(join(ROOT, "supabase", "schema.sql"), "utf8").replace(/--.*$/gm, "");
+    // GRANT SELECT por columna a anon/authenticated (products y product_variants).
+    const grants = [...sql.matchAll(/GRANT\s+SELECT\s*\(([^)]*)\)\s*ON\s+(\w+)\s+TO\s+anon/gi)];
+    expect(grants.map((m) => m[2]).sort()).toEqual(["product_variants", "products"]);
+    for (const m of grants) expect({ table: m[2], leaks: BANNED.test(m[1]) }).toEqual({ table: m[2], leaks: false });
+    // Vista pública (schema y migración): lista de columnas sin datos internos y solo activos.
+    for (const file of [sql, readFileSync(join(ROOT, "supabase", "migration_v2_2_catalog.sql"), "utf8").replace(/--.*$/gm, "")]) {
+      const view = file.match(/CREATE\s+VIEW\s+(?:public\.)?products_public[\s\S]*?SELECT([\s\S]*?)FROM[\s\S]*?WHERE\s+status\s*=\s*'active'/i);
+      expect(view).not.toBeNull();
+      expect(BANNED.test(view![1])).toBe(false);
+    }
+    // Y la consulta pública del storefront.
+    const publicCols = readFileSync(join(SRC, "lib", "catalog", "products.ts"), "utf8").match(/"id, slug[^"]*"/)?.[0] ?? "";
+    expect(publicCols).not.toBe("");
+    expect(BANNED.test(publicCols)).toBe(false);
+  });
+
+  test("el import solo escribe con service role: ningún módulo público lo importa y no toca la vista pública", () => {
+    const f = files.find((x) => x.rel === "lib/admin/importProduct.ts");
+    expect(f?.src).toContain('@/lib/supabase/admin');
+    expect(f?.src).not.toMatch(/products_public/);
+    const importers = files
+      .filter((x) => /@\/lib\/admin\/importProduct/.test(x.src))
+      .map((x) => x.rel)
+      .sort();
+    expect(importers).toEqual([
+      "app/api/admin/suppliers/[supplier]/import/preview/route.ts",
+      "app/api/admin/suppliers/[supplier]/import/route.ts",
+    ]);
   });
 });

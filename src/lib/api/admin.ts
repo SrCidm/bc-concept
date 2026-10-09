@@ -1,5 +1,6 @@
 import "server-only";
 import { NextResponse } from "next/server";
+import { IMPORT_ERROR_STATUS, type ImportErrorCode, type MarginCheckDTO } from "@/lib/admin/import.types";
 import { SupplierError, isSupplierError } from "@/lib/suppliers/errors";
 
 const NO_STORE = { "Cache-Control": "no-store" } as const;
@@ -81,4 +82,28 @@ export function parseProductsQuery(params: URLSearchParams): ProductsQuery {
     euOnly: params.get("euOnly") !== "false",
     inStockOnly: params.get("inStockOnly") !== "false",
   };
+}
+
+const MAX_BODY_BYTES = 4_096;
+
+/** Cuerpo JSON pequeño y bien tipado, o `invalid_request` (sin eco de lo recibido). */
+export async function readJsonBody(req: Request): Promise<unknown> {
+  if (!req.headers.get("content-type")?.toLowerCase().includes("application/json")) {
+    throw new SupplierError("invalid_request");
+  }
+  const text = await req.text();
+  if (text.length === 0 || text.length > MAX_BODY_BYTES) throw new SupplierError("invalid_request");
+  try {
+    return JSON.parse(text);
+  } catch {
+    throw new SupplierError("invalid_request");
+  }
+}
+
+/** Fallo de la importación: solo el código (y la guarda de margen, que es dato admin), nunca texto de proveedor/BD. */
+export function importErrorResponse(code: ImportErrorCode, check?: MarginCheckDTO): NextResponse {
+  return NextResponse.json(
+    { error: { code }, ...(check ? { check } : {}) },
+    { status: IMPORT_ERROR_STATUS[code], headers: NO_STORE }
+  );
 }
