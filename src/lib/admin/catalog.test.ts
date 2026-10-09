@@ -65,7 +65,7 @@ function spyEnv(opts: { decision?: AdminDecision | "throw"; listProducts?: () =>
       calls.push("getAdapter");
       return adapter;
     },
-    getMarginParams: () => PARAMS,
+    getMarginParams: async () => PARAMS,
     isMock: () => false,
   };
   return { calls, seen, deps };
@@ -122,7 +122,7 @@ describe("listAdminCatalog con admin", () => {
 
   test("sin parámetros de margen: margin null con motivo (el coste sigue)", async () => {
     const { deps } = spyEnv();
-    const r = await listAdminCatalog(QUERY, { ...deps, getMarginParams: () => null });
+    const r = await listAdminCatalog(QUERY, { ...deps, getMarginParams: async () => null });
     if (!r.ok) throw new Error("debería ir bien");
     expect(r.data.items[0].margin).toBeNull();
     expect(r.data.items[0].marginReason).toBe("params_not_configured");

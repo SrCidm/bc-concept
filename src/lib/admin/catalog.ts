@@ -1,6 +1,7 @@
 import "server-only";
 import { resolveAdmin, type AdminDecision } from "@/lib/auth/requireAdmin";
-import { parseMarginParams, type MarginParams } from "@/lib/pricing/margin";
+import type { MarginParams } from "@/lib/pricing/margin";
+import { marginSettings } from "@/lib/pricing/settings";
 import { toAdminPageDTO } from "@/lib/suppliers/dto";
 import type { AdminProductPageDTO } from "@/lib/suppliers/dto.types";
 import { isSupplierError, type SupplierErrorCode } from "@/lib/suppliers/errors";
@@ -40,7 +41,7 @@ export type AdminCatalogResult =
 export interface AdminCatalogDeps {
   resolve?: () => Promise<AdminDecision>;
   getAdapter?: () => SupplierAdapter;
-  getMarginParams?: () => MarginParams | null;
+  getMarginParams?: () => Promise<MarginParams | null>;
   isMock?: () => boolean;
 }
 
@@ -69,7 +70,7 @@ export async function listAdminCatalog(
       euOnly: query.euOnly,
       inStockOnly: query.inStockOnly,
     });
-    const params = (deps.getMarginParams ?? (() => parseMarginParams()))();
+    const params = await (deps.getMarginParams ?? (() => marginSettings().get()))();
     return {
       ok: true,
       data: toAdminPageDTO(page, params),

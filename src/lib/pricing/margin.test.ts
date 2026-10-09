@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { computeMargin, parseMarginParams, type MarginParams } from "./margin";
+import { computeMargin, type MarginParams } from "./margin";
 
 const params: MarginParams = {
   vatPct: 21,
@@ -38,35 +38,23 @@ describe("computeMargin", () => {
     expect(computeMargin(10, 0, params)).toBeNull();
     expect(computeMargin(Number.NaN, 50, params)).toBeNull();
   });
-});
 
-describe("parseMarginParams (sin valores por defecto)", () => {
-  const env = {
-    MARGIN_VAT_PCT: "21",
-    MARGIN_SHIPPING_EUR: "4",
-    MARGIN_STRIPE_PCT: "1.5",
-    MARGIN_STRIPE_FIXED_EUR: "0.25",
-    MARGIN_RETURNS_BUFFER_PCT: "3",
-    MARGIN_TARGET_MIN_PCT: "15",
-    MARGIN_TARGET_MAX_PCT: "35",
-  };
+  test("coste de adquisición por pedido: opcional (0 por defecto) y se resta del margen", () => {
+    const base = computeMargin(18.5, 59.9, params)!;
+    expect(base.acquisition).toBe(0);
+    expect(computeMargin(18.5, 59.9, { ...params, acquisitionCost: 0 })!.netMargin).toBe(base.netMargin);
 
-  test("lee todos los parámetros del entorno", () => {
-    expect(parseMarginParams(env)).toEqual(params);
+    const withAds = computeMargin(18.5, 59.9, { ...params, acquisitionCost: 3 })!;
+    expect(withAds.acquisition).toBe(3);
+    expect(withAds.netMargin).toBeCloseTo(base.netMargin - 3, 2);
   });
 
-  test("falta cualquiera → null (nunca se inventa un valor)", () => {
-    for (const key of Object.keys(env)) {
-      const partial: Record<string, string | undefined> = { ...env };
-      delete partial[key];
-      expect(parseMarginParams(partial)).toBeNull();
-    }
-    expect(parseMarginParams({})).toBeNull();
-  });
-
-  test("valores inválidos o rango objetivo invertido → null", () => {
-    expect(parseMarginParams({ ...env, MARGIN_VAT_PCT: "abc" })).toBeNull();
-    expect(parseMarginParams({ ...env, MARGIN_SHIPPING_EUR: "-1" })).toBeNull();
-    expect(parseMarginParams({ ...env, MARGIN_TARGET_MIN_PCT: "50", MARGIN_TARGET_MAX_PCT: "10" })).toBeNull();
+  test("el envío puede venir POR PRODUCTO (3.4) sin tocar los parámetros globales", () => {
+    const base = computeMargin(18.5, 59.9, params)!;
+    const heavy = computeMargin(18.5, 59.9, params, { shippingCost: 9 })!;
+    expect(heavy.shipping).toBe(9);
+    expect(heavy.netMargin).toBeCloseTo(base.netMargin - 5, 2);
+    // Sin override se usa el global.
+    expect(computeMargin(18.5, 59.9, params, {})!.shipping).toBe(4);
   });
 });

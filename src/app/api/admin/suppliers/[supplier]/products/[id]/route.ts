@@ -1,6 +1,6 @@
 import { requireAdmin } from "@/lib/auth/requireAdmin";
 import { adminErrorResponse, jsonNoStore } from "@/lib/api/admin";
-import { parseMarginParams } from "@/lib/pricing/margin";
+import { marginSettings } from "@/lib/pricing/settings";
 import { toAdminProductDTO } from "@/lib/suppliers/dto";
 import { SupplierError } from "@/lib/suppliers/errors";
 import { getSupplierAdapter, parseSupplierId } from "@/lib/suppliers/registry";
@@ -25,7 +25,7 @@ export async function GET(
 
     const product = await adapter.getProduct(params.id, { lang });
     if (!product) throw new SupplierError("not_found");
-    return jsonNoStore(toAdminProductDTO(product, parseMarginParams()));
+    return jsonNoStore(toAdminProductDTO(product, await marginSettings().get()));
   } catch (e) {
     return adminErrorResponse(e);
   }
