@@ -226,6 +226,38 @@ describe("previewImport", () => {
     expect(r.data.simulated).toBe(false);
   });
 
+  test("variantes con costes DISTINTOS: el servidor entrega mínimo, peor caso y costVaries:true", async () => {
+    const { deps } = setup(); // variantes a=18,5 y b=19,5
+    const r = await previewImport("bigbuy", { supplierProductId: "1001" }, deps);
+    if (!r.ok) throw new Error("debería ir bien");
+    expect(r.data.product).toMatchObject({ minCost: 18.5, worstCaseCost: 19.5, costVaries: true });
+    // La guarda usa el peor caso: el desglose resta 19,5, no el 18,5 de la cabecera antigua.
+    expect(r.data.check?.cost).toBe(19.5);
+  });
+
+  test("todas las variantes cuestan lo mismo → costVaries:false (la cabecera se queda como está)", async () => {
+    const same = { ...PRODUCT, variants: [variant("a", 18.5), variant("b", 18.5)] };
+    const { deps } = setup({ product: same });
+    const r = await previewImport("bigbuy", { supplierProductId: "1001" }, deps);
+    if (!r.ok) throw new Error("debería ir bien");
+    expect(r.data.product).toMatchObject({ minCost: 18.5, worstCaseCost: 18.5, costVaries: false });
+  });
+
+  test("sin variantes → costVaries:false", async () => {
+    const { deps } = setup({ product: { ...PRODUCT, variants: [] } });
+    const r = await previewImport("bigbuy", { supplierProductId: "1001" }, deps);
+    if (!r.ok) throw new Error("debería ir bien");
+    expect(r.data.product).toMatchObject({ minCost: 18.5, worstCaseCost: 18.5, costVaries: false });
+  });
+
+  test("el producto base más caro que sus variantes: rango de menor a mayor y peor caso = el del base", async () => {
+    const odd = { ...PRODUCT, cost: { amount: 40, currency: "EUR" }, variants: [variant("a", 30), variant("b", 35)] };
+    const { deps } = setup({ product: odd });
+    const r = await previewImport("bigbuy", { supplierProductId: "1001" }, deps);
+    if (!r.ok) throw new Error("debería ir bien");
+    expect(r.data.product).toMatchObject({ minCost: 30, worstCaseCost: 40, costVaries: true });
+  });
+
   test("sin precio: parte del recomendado del proveedor y devuelve la guarda a ese precio", async () => {
     const { deps } = setup();
     const r = await previewImport("bigbuy", { supplierProductId: "1001" }, deps);

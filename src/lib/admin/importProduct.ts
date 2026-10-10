@@ -174,6 +174,8 @@ interface Assessment {
   euStock: number;
   /** Coste de referencia de la guarda: el más alto entre producto y variantes. */
   guardCost: number;
+  /** Coste más bajo entre producto y variantes (para mostrar el rango). */
+  minCost: number;
 }
 
 /** Elegibilidad para importar: EUR y almacén UE EXPLÍCITO con stock (fail-closed). */
@@ -189,15 +191,16 @@ function assess(product: SupplierProduct): { ok: true; value: Assessment } | { o
   let best = eligible[0];
   for (const e of eligible) if (e.quantity > best.quantity) best = e;
 
+  const variantCosts = product.variants.map((v) => v.cost.amount);
+  const validVariantCosts = variantCosts.filter((c) => Number.isFinite(c) && c >= 0);
+
   return {
     ok: true,
     value: {
       warehouse: best.warehouse as string,
       euStock: eligible.reduce((n, e) => n + e.quantity, 0),
-      guardCost: worstCaseCost(
-        product.cost.amount,
-        product.variants.map((v) => v.cost.amount)
-      ),
+      guardCost: worstCaseCost(product.cost.amount, variantCosts),
+      minCost: Math.min(product.cost.amount, ...validVariantCosts),
     },
   };
 }
@@ -434,7 +437,10 @@ export async function previewImport(
           cost: { amount: product.cost.amount, currency: product.cost.currency },
           suggestedRetail: rrp ? { amount: rrp.amount, currency: rrp.currency } : null,
           variantCount: product.variants.length,
+          minCost: a.value.minCost,
           worstCaseCost: a.value.guardCost,
+          // Céntimo de tolerancia: costes iguales con ruido de coma flotante no son un "rango".
+          costVaries: a.value.guardCost - a.value.minCost >= 0.005,
           warehouse: a.value.warehouse,
           euStock: a.value.euStock,
         },

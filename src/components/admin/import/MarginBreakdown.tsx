@@ -2,6 +2,7 @@
 
 import { useTranslations } from "next-intl";
 import type { MarginCheckDTO } from "@/lib/admin/import.types";
+import { costRowLabelKey } from "./costDisplay";
 import { formatMoney } from "./format";
 
 const pctFormat = new Intl.NumberFormat("es-ES", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
@@ -13,14 +14,23 @@ const eur = (n: number) => formatMoney({ amount: n, currency: "EUR" });
  * Desglose de margen. SOLO muestra lo que calculó el servidor (`MarginCheckDTO`):
  * ni fórmula ni parámetros en el cliente.
  */
-export function MarginBreakdown({ check, stale }: { check: MarginCheckDTO; stale: boolean }) {
+export function MarginBreakdown({
+  check,
+  stale,
+  costVaries,
+}: {
+  check: MarginCheckDTO;
+  stale: boolean;
+  /** Hay variantes con costes distintos: la fila de coste es la de la variante más cara. */
+  costVaries: boolean;
+}) {
   const t = useTranslations("admin.import.dialog.margin.rows");
 
   const rows: Array<{ key: string; label: string; value: string; strong?: boolean }> = [
     { key: "price", label: t("price"), value: eur(check.price) },
     { key: "vat", label: t("vat"), value: `− ${eur(check.vat)}` },
     { key: "net", label: t("net"), value: eur(check.netRevenue), strong: true },
-    { key: "cost", label: t("cost"), value: `− ${eur(check.cost)}` },
+    { key: "cost", label: t(costRowLabelKey(costVaries)), value: `− ${eur(check.cost)}` },
     { key: "shipping", label: t("shipping"), value: `− ${eur(check.shipping)}` },
     { key: "stripe", label: t("stripe"), value: `− ${eur(check.stripeFee)}` },
     { key: "returns", label: t("returns"), value: `− ${eur(check.returnsBuffer)}` },

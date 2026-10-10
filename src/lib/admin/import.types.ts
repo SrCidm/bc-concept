@@ -72,8 +72,12 @@ export interface ImportPreviewDTO {
     /** PVP recomendado por el proveedor (referencia). */
     suggestedRetail: { amount: number; currency: string } | null;
     variantCount: number;
+    /** Coste más bajo entre producto y variantes. */
+    minCost: number;
     /** Coste más alto entre producto y variantes: el que usa la guarda. */
     worstCaseCost: number;
+    /** El coste NO es el mismo en todas las variantes (la cabecera muestra un rango y el desglose lo explica). */
+    costVaries: boolean;
     /** Almacén UE elegido (el de más stock). */
     warehouse: string;
     euStock: number;

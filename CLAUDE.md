@@ -43,6 +43,7 @@ Guía persistente para Claude Code. Tienda de **dropshipping de decoración de h
 ## Deuda anotada (Hito 3)
 - **Filtro UE fail-closed** (crítico): hoy `isEuWarehouse(null)` asume UE. Al validar contra el sandbox de BigBuy (cuando llegue `BIGBUY_API_KEY`) debe pasar a "almacén desconocido = NO elegible UE" (excluir o marcar). Ver TODO en `src/lib/suppliers/bigbuy/warehouses.ts`.
 - **Guarda de margen (Fase 3.4):** editable por Yosra desde una tabla de ajustes de admin, no `MARGIN_*` en env; y el coste de envío vendrá **por producto** de BigBuy, no fijo. Ver TODO en `src/lib/pricing/margin.ts`.
+- **Categoría y publicación (Fase 3.4):** la categoría es OBLIGATORIA para publicar (`draft→active`); en `draft` puede quedar sin categoría (el modal de importación la deja opcional). La acción de publicar debe rechazar `category` nulo.
 - Migrar CJ (`src/lib/cj/`) a `lib/suppliers/cj/` con la interfaz común; valorar cifrado de `api_key` (Supabase Vault) antes de producción.
 
 ## Economía unitaria

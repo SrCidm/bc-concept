@@ -147,6 +147,7 @@
             "vat": "IVA",
             "net": "Ingresos netos",
             "cost": "Coste de proveedor",
+            "costWorst": "Coste de proveedor (variante más cara)",
             "shipping": "Envío",
             "stripe": "Comisión Stripe",
             "returns": "Colchón de devoluciones",

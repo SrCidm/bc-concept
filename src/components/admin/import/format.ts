@@ -16,5 +16,18 @@ export function formatMoney(m: { amount: number; currency: string }): string {
   return f.format(m.amount);
 }
 
+const plainFormat = new Intl.NumberFormat("es-ES", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+/** "34,03–36,75 €": el símbolo solo al final. */
+export function formatMoneyRange(min: number, max: number, currency: string): string {
+  try {
+    new Intl.NumberFormat("es-ES", { style: "currency", currency });
+  } catch {
+    // Código de moneda no válido: mismo criterio que formatMoney (números con su código).
+    return `${min.toFixed(2)}–${max.toFixed(2)} ${currency}`;
+  }
+  return `${plainFormat.format(min)}–${formatMoney({ amount: max, currency })}`;
+}
+
 const intFormat = new Intl.NumberFormat("es-ES");
 export const formatInt = (n: number) => intFormat.format(n);

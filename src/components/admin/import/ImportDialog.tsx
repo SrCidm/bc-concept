@@ -11,6 +11,7 @@ import {
   type MarginCheckDTO,
   type StoreCategory,
 } from "@/lib/admin/import.types";
+import { costHeaderText } from "./costDisplay";
 import { formatInt, formatMoney } from "./format";
 import { MarginBreakdown, formatPct } from "./MarginBreakdown";
 import { formatPriceInput, parsePriceInput } from "./price";
@@ -276,7 +277,7 @@ export function ImportDialog({ product, onClose }: { product: ImportDialogProduc
             <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm sm:grid-cols-4">
               <div>
                 <dt className="text-xs text-bc-text-secondary">{t("supplier.cost")}</dt>
-                <dd className="font-medium tabular-nums text-bc-text-primary">{formatMoney(preview.product.cost)}</dd>
+                <dd className="font-medium tabular-nums text-bc-text-primary">{costHeaderText(preview.product)}</dd>
               </div>
               <div>
                 <dt className="text-xs text-bc-text-secondary">{t("supplier.warehouse")}</dt>
@@ -356,7 +357,7 @@ export function ImportDialog({ product, onClose }: { product: ImportDialogProduc
               <h3 className="font-sans text-sm font-medium text-bc-text-primary">{t("margin.title")}</h3>
               {check ? (
                 <>
-                  <MarginBreakdown check={check} stale={!fresh} />
+                  <MarginBreakdown check={check} stale={!fresh} costVaries={preview.product.costVaries} />
                   {fresh && !check.belowMin && (
                     <p role="status" data-margin-ok className="text-sm text-bc-text-secondary">
                       {t("margin.ok", { pct: formatPct(check.netMarginPct), min: formatPct(check.minPct) })}
