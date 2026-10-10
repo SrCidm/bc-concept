@@ -108,6 +108,101 @@
         "nextPage": "Ver la página siguiente"
       },
       "loading": "Cargando el catálogo…",
+      "dialog": {
+        "open": "Importar",
+        "openAria": "Importar «{title}»",
+        "title": "Importar producto",
+        "close": "Cerrar",
+        "cancel": "Cancelar",
+        "reference": "Ref. {sku}",
+        "loading": "Cargando los datos del proveedor…",
+        "simulated": "Simulación: con datos de ejemplo no se escribe nada en la base de datos.",
+        "supplier": {
+          "cost": "Coste de proveedor",
+          "warehouse": "Almacén",
+          "euStock": "Stock UE",
+          "variants": "Variantes"
+        },
+        "price": {
+          "label": "PVP (IVA incluido)",
+          "hint": "Recomendado por el proveedor: {price}",
+          "invalid": "Introduce un precio válido, por ejemplo 59,90.",
+          "unit": "€"
+        },
+        "category": {
+          "label": "Categoría",
+          "none": "Sin categoría",
+          "options": {
+            "lighting": "Iluminación",
+            "textiles": "Textiles",
+            "decor": "Decoración"
+          }
+        },
+        "margin": {
+          "title": "Margen neto",
+          "calculating": "Calculando…",
+          "ok": "Margen correcto: {pct} % (mínimo {min} %)",
+          "rows": {
+            "price": "PVP (IVA incl.)",
+            "vat": "IVA",
+            "net": "Ingresos netos",
+            "cost": "Coste de proveedor",
+            "shipping": "Envío",
+            "stripe": "Comisión Stripe",
+            "returns": "Colchón de devoluciones",
+            "acquisition": "Adquisición (ads)",
+            "margin": "Margen neto"
+          },
+          "note": "Cálculo del servidor con los ajustes actuales. El envío es un valor medio."
+        },
+        "below": {
+          "title": "Margen por debajo del mínimo",
+          "body": "Con este precio el margen neto es del {pct} % y el mínimo exigido es del {min} %.",
+          "loss": "Se vende a pérdida.",
+          "minPrice": "PVP mínimo para llegar al {min} %: {price}",
+          "useMin": "Usar el precio mínimo",
+          "unreachable": "Con los ajustes actuales el mínimo no se alcanza a ningún precio.",
+          "confirm": "Entiendo que el margen está por debajo del mínimo y quiero guardarlo igualmente"
+        },
+        "already": {
+          "draft": "Este producto ya está importado como borrador. Guardar de nuevo no cambia nada.",
+          "active": "Este producto ya está importado y publicado. Guardar de nuevo no cambia nada.",
+          "archived": "Este producto ya está importado y archivado. Guardar de nuevo no cambia nada."
+        },
+        "save": "Guardar como borrador",
+        "saving": "Guardando…",
+        "retry": "Reintentar",
+        "result": {
+          "created": "Guardado como borrador.",
+          "createdBody": "Aún no es público: se publicará desde el panel cuando esté listo.",
+          "forced": "Se guardó con el margen por debajo del mínimo, con tu confirmación.",
+          "existing": "Ya estaba importado ({status}). No se ha cambiado nada.",
+          "simulated": "Simulación completada. No se ha escrito nada en la base de datos.",
+          "status": {
+            "draft": "borrador",
+            "active": "publicado",
+            "archived": "archivado"
+          }
+        },
+        "errors": {
+          "unauthenticated": "Tu sesión ha caducado. Vuelve a entrar.",
+          "forbidden": "Tu cuenta no tiene acceso.",
+          "not_configured": "BigBuy aún no está conectado.",
+          "unauthorized": "BigBuy ha rechazado la clave de API.",
+          "rate_limited": "BigBuy limita las peticiones. Espera unos segundos.",
+          "timeout": "BigBuy no ha respondido a tiempo.",
+          "upstream": "BigBuy no está disponible ahora mismo.",
+          "bad_response": "BigBuy ha respondido algo inesperado.",
+          "not_found": "El producto ya no existe en BigBuy.",
+          "invalid_request": "Los datos no son válidos.",
+          "unsupported": "Proveedor no soportado todavía.",
+          "not_eu_eligible": "No se puede importar: no tiene stock en un almacén de la UE verificado.",
+          "currency_mismatch": "No se puede importar: el coste no está en euros.",
+          "margin_below_min": "El margen está por debajo del mínimo: marca la confirmación para poder guardarlo.",
+          "storage_failed": "No se ha podido guardar. Inténtalo de nuevo.",
+          "network": "No se ha podido conectar. Revisa tu conexión."
+        }
+      },
       "error": {
         "retry": "Reintentar",
         "clear": "Limpiar búsqueda",

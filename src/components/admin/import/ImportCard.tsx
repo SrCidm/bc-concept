@@ -1,12 +1,12 @@
 import { useTranslations } from "next-intl";
 import type { AdminProductDTO } from "@/lib/suppliers/dto.types";
 import { formatInt, formatMoney } from "./format";
+import { ImportAction } from "./ImportAction";
 import { ProductThumb } from "./ProductThumb";
 
 /**
  * Tarjeta de un producto del proveedor: imagen, nombre, referencia, coste de
- * referencia y stock. Solo lectura: la acción de importar llega en la 3.3
- * (`data-product-id` queda como gancho). Server Component.
+ * referencia y stock, más el botón "Importar" (modal de 3.3). Server Component.
  */
 export function ImportCard({ product }: { product: AdminProductDTO }) {
   const t = useTranslations("admin.import.card");
@@ -71,6 +71,17 @@ export function ImportCard({ product }: { product: AdminProductDTO }) {
             .join(" · ")}
         </p>
       )}
+
+      <div className="mt-auto pt-1">
+        <ImportAction
+          product={{
+            id: product.supplierProductId,
+            title: product.title,
+            image: product.images[0] ?? null,
+            sku: product.sku,
+          }}
+        />
+      </div>
     </article>
   );
 }
