@@ -40,3 +40,6 @@ next-env.d.ts
 
 # binarios locales
 stripe.exe
+
+# Estado local del CLI de Supabase (proyecto enlazado, versión): no se versiona
+supabase/.temp/

@@ -39,7 +39,7 @@ function walk(dir: string, out: string[] = []): string[] {
 const DTO_TYPES_IMPORT = /import\s+type\s+\{[^}]*\}\s+from\s+["']@\/lib\/suppliers\/dto\.types["'];?/g;
 
 /** Contrato client-safe del flujo de importación (tipos y constantes, sin server-only): también admitido. */
-const IMPORT_TYPES_IMPORT = /import\s+(?:type\s+)?\{[^}]*\}\s+from\s+["']@\/lib\/admin\/import\.types["'];?/g;
+const IMPORT_TYPES_IMPORT = /import\s+(?:type\s+)?\{[^}]*\}\s+from\s+["']@\/lib\/admin\/(?:import|settings)\.types["'];?/g;
 
 const files = walk(SRC).map((f) => {
   const rel = relative(SRC, f).split(sep).join("/");
@@ -302,6 +302,7 @@ describe("fronteras de la regla #1 (coste solo en superficies admin)", () => {
       "app/api/admin/suppliers/[supplier]/import/route.ts",
     ]);
   });
+
   test("margin_settings: solo backend (SELECT + INSERT), solo inserción y sin acceso para anon/authenticated", () => {
     for (const file of ["schema.sql", "migration_v2_5_margin_settings.sql"]) {
       const sql = readFileSync(join(ROOT, "supabase", file), "utf8").replace(/--.*$/gm, "");
@@ -330,5 +331,40 @@ describe("fronteras de la regla #1 (coste solo en superficies admin)", () => {
       expect(sql).toMatch(/BEFORE TRUNCATE ON public\.margin_settings\s+FOR EACH STATEMENT EXECUTE FUNCTION public\.margin_settings_append_only\(\)/);
       expect(sql).toMatch(/margin_settings_append_only\(\)[\s\S]*?SET search_path = ''/);
     }
+  });
+
+  test("settings.types.ts es client-safe (sin server-only ni imports de runtime)", () => {
+    const f = files.find((x) => x.rel === "lib/admin/settings.types.ts");
+    expect(f).toBeDefined();
+    const code = f!.src.replace(/\/\*[\s\S]*?\*\/|\/\/.*$/gm, "");
+    expect(code).not.toContain("server-only");
+    for (const line of code.match(/^\s*import\b.*$/gm) ?? []) expect(line).toMatch(/^\s*import\s+type\b/);
+  });
+
+  test("el almacén de margin_settings es de SOLO INSERCIÓN (sin update/delete/upsert en el código)", () => {
+    const f = files.find((x) => x.rel === "lib/pricing/settingsStore.ts");
+    const code = (f?.src ?? "").replace(/\/\*[\s\S]*?\*\/|\/\/.*$/gm, "");
+    expect(code).toContain(".insert(");
+    expect(code).not.toMatch(/\.(update|delete|upsert)\s*\(/);
+    // Nadie más escribe en margin_settings.
+    const writers = files
+      .filter((x) => x.rel !== "lib/pricing/settingsStore.ts")
+      .filter((x) => /from\(\s*["']margin_settings["']\s*\)/.test(x.src))
+      .map((x) => x.rel);
+    expect(writers).toEqual([]);
+  });
+
+  test("los ajustes de margen solo se usan desde superficies admin", () => {
+    const importers = files
+      .filter((x) => /@\/lib\/admin\/marginSettings["']/.test(x.src))
+      .map((x) => x.rel)
+      .sort();
+    const allowed = new Set([
+      "app/api/admin/settings/margin/preview/route.ts",
+      "app/api/admin/settings/margin/route.ts",
+      "app/[locale]/(admin)/admin/(panel)/ajustes/page.tsx",
+    ]);
+    expect(importers.length).toBeGreaterThan(0);
+    for (const rel of importers) expect({ rel, allowed: allowed.has(rel) }).toEqual({ rel, allowed: true });
   });
 });

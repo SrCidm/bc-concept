@@ -1,6 +1,7 @@
 import "server-only";
 import { NextResponse } from "next/server";
 import { IMPORT_ERROR_STATUS, type ImportErrorCode, type MarginCheckDTO } from "@/lib/admin/import.types";
+import { MARGIN_SETTINGS_ERROR_STATUS, type MarginSettingsErrorCode } from "@/lib/admin/settings.types";
 import { SupplierError, isSupplierError } from "@/lib/suppliers/errors";
 
 const NO_STORE = { "Cache-Control": "no-store" } as const;
@@ -105,5 +106,16 @@ export function importErrorResponse(code: ImportErrorCode, check?: MarginCheckDT
   return NextResponse.json(
     { error: { code }, ...(check ? { check } : {}) },
     { status: IMPORT_ERROR_STATUS[code], headers: NO_STORE }
+  );
+}
+
+/** Fallo del panel de ajustes: el código y, en validación, los NOMBRES de los campos (nunca los valores). */
+export function marginSettingsErrorResponse(
+  code: MarginSettingsErrorCode,
+  fields?: ReadonlyArray<string>
+): NextResponse {
+  return NextResponse.json(
+    { error: { code, ...(fields && fields.length ? { fields } : {}) } },
+    { status: MARGIN_SETTINGS_ERROR_STATUS[code], headers: NO_STORE }
   );
 }
