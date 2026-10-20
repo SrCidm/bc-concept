@@ -12,7 +12,10 @@ const actionClasses =
 /** Barra superior del panel. Server Component: recibe el email ya verificado. */
 export async function AdminTopBar({ email }: { email: string }) {
   const t = await getTranslations("admin.topbar");
-  const items = [{ href: "/admin/import", label: t("nav.import") }];
+  const items = [
+    { href: "/admin/import", label: t("nav.import") },
+    { href: "/admin/ajustes", label: t("nav.settings") },
+  ];
 
   return (
     <header className="border-b border-bc-border bg-bc-surface">

@@ -54,9 +54,116 @@
     "topbar": {
       "skip": "Saltar al contenido",
       "navLabel": "Navegación del panel",
-      "nav": { "import": "Importar" },
+      "nav": { "import": "Importar", "settings": "Ajustes" },
       "backToStore": "Volver a la tienda",
       "signOut": "Cerrar sesión"
+    },
+    "settings": {
+      "title": "Ajustes de margen",
+      "intro": "Estos valores deciden cuándo el margen de un producto es suficiente. Se aplican a todas las importaciones a partir del momento en que los guardas.",
+      "status": {
+        "db": "Vigentes desde el {date}, guardados por {who}.",
+        "env": "Se usan los valores de las variables de entorno: aún no se ha guardado ningún ajuste desde aquí.",
+        "defaults": "Se usan los valores por defecto: aún no se ha guardado ningún ajuste desde aquí.",
+        "degraded": "No se han podido leer los ajustes guardados: ahora mismo se usan los valores por defecto. Vuelve a intentarlo en un momento.",
+        "memory": "Modo de prueba: los ajustes se guardan en memoria del servidor de desarrollo, no en la base de datos.",
+        "note": "Nota: {note}"
+      },
+      "groups": {
+        "margin": "Margen",
+        "costs": "Costes por pedido",
+        "payments": "Pagos con tarjeta",
+        "taxes": "Impuestos"
+      },
+      "fields": {
+        "targetMinPct": {
+          "label": "Margen mínimo",
+          "help": "Por debajo de este margen neto, el importador avisa en rojo y pide confirmación."
+        },
+        "targetMaxPct": {
+          "label": "Margen objetivo máximo",
+          "help": "Solo orientativo: por encima, el margen se marca como alto."
+        },
+        "returnsBufferPct": {
+          "label": "Colchón de devoluciones",
+          "help": "Parte de cada venta (sin IVA) que se reserva para devoluciones y roturas."
+        },
+        "shippingCost": {
+          "label": "Envío por pedido",
+          "help": "Lo que nos cuesta enviar un pedido, de media. Más adelante vendrá de cada producto."
+        },
+        "acquisitionCost": {
+          "label": "Captación por pedido",
+          "help": "Lo que gastamos en anuncios por cada venta. Déjalo en 0 si no hay campañas."
+        },
+        "stripePct": {
+          "label": "Comisión de Stripe",
+          "help": "Lo que cobra Stripe sobre el precio de venta."
+        },
+        "stripeFixed": {
+          "label": "Comisión fija de Stripe",
+          "help": "Lo que cobra Stripe por cada pago, además del porcentaje."
+        },
+        "vat": {
+          "label": "IVA",
+          "help": "Lo fija la ley; no se cambia aquí."
+        },
+        "note": {
+          "label": "Nota (opcional)",
+          "help": "Por qué cambias los ajustes. Queda en el historial."
+        }
+      },
+      "range": "Entre {min} y {max}",
+      "rangeTarget": "Entre el margen mínimo y {max}",
+      "invalid": "Fuera del rango permitido.",
+      "invalidNumber": "Escribe un número, por ejemplo 4,50.",
+      "invalidNote": "La nota es demasiado larga o tiene caracteres no permitidos.",
+      "example": {
+        "title": "Ejemplo con estos ajustes",
+        "body": "Con un coste de {cost} y estos ajustes, el PVP mínimo es {price}.",
+        "unreachable": "Con estos ajustes no hay precio que alcance el margen mínimo.",
+        "unsaved": "Sin guardar",
+        "calculating": "Calculando…",
+        "rows": {
+          "price": "PVP (IVA incl.)",
+          "vat": "IVA",
+          "net": "Ingresos netos",
+          "cost": "Coste de proveedor",
+          "shipping": "Envío",
+          "stripe": "Comisión Stripe",
+          "returns": "Colchón de devoluciones",
+          "acquisition": "Captación",
+          "margin": "Margen neto"
+        }
+      },
+      "save": "Guardar ajustes",
+      "noChanges": "No hay cambios que guardar.",
+      "confirm": {
+        "title": "Revisa los cambios antes de guardar",
+        "body": "Se aplicarán a las próximas importaciones:",
+        "initial": "Aún no hay ajustes guardados: se guardarán los valores actuales tal cual, como punto de partida del historial.",
+        "change": "{field}: {from} → {to}",
+        "submit": "Confirmar y guardar",
+        "back": "Volver",
+        "saving": "Guardando…"
+      },
+      "saved": "Ajustes guardados. Las próximas importaciones ya los usan.",
+      "errors": {
+        "invalid_request": "Revisa los campos marcados.",
+        "storage_failed": "No se han podido guardar los ajustes. Inténtalo de nuevo.",
+        "unauthenticated": "Tu sesión ha caducado. Vuelve a entrar.",
+        "forbidden": "Tu cuenta no tiene acceso.",
+        "network": "No se ha podido conectar. Revisa tu conexión."
+      },
+      "history": {
+        "title": "Historial de cambios",
+        "empty": "Aún no se ha guardado ningún ajuste.",
+        "when": "Fecha",
+        "who": "Quién",
+        "values": "Valores",
+        "note": "Nota",
+        "changedHint": "Resaltado: lo que cambió respecto al guardado anterior."
+      }
     },
     "import": {
       "title": "Importar desde BigBuy",
