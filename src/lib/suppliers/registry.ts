@@ -14,12 +14,19 @@ export function parseSupplierId(raw: string): SupplierId | null {
 type Env = Record<string, string | undefined>;
 
 /**
- * El mock de BigBuy (`BIGBUY_MOCK=1`) solo existe fuera de producción: en
- * `NODE_ENV=production` se ignora por completo (fail-closed), de modo que una
- * variable olvidada en el entorno nunca sirve datos de ejemplo en la tienda real.
+ * El mock de BigBuy (`BIGBUY_MOCK=1`) solo existe fuera de producción (fail-closed),
+ * de modo que una variable olvidada nunca sirve datos de ejemplo en la tienda real:
+ * - `VERCEL_ENV=production` → ignorado SIEMPRE (aunque esté la variable);
+ * - `VERCEL_ENV=preview` → activo (las previews de Vercel construyen con
+ *   `NODE_ENV=production`, pero son para probar el panel con datos de ejemplo);
+ * - fuera de Vercel → activo solo si `NODE_ENV !== "production"` (dev/test sí;
+ *   `next start` local no).
+ * Con el mock, la importación es una simulación: no escribe en la BD.
  */
 export function isMockEnabled(env: Env = process.env): boolean {
-  return env.BIGBUY_MOCK === "1" && env.NODE_ENV !== "production";
+  if (env.BIGBUY_MOCK !== "1") return false;
+  if (env.VERCEL_ENV === "production") return false;
+  return env.VERCEL_ENV === "preview" || env.NODE_ENV !== "production";
 }
 
 export type MockScenario = MockFailure | "not_configured";

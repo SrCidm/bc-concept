@@ -22,6 +22,24 @@ describe("guarda de producción del mock", () => {
     expect(isMockEnabled({ NODE_ENV: "development" })).toBe(false);
   });
 
+  test("Vercel: activo en Preview, ignorado SIEMPRE en Production", () => {
+    // Production de Vercel: nunca, ni con NODE_ENV=production ni con otro valor.
+    expect(isMockEnabled({ BIGBUY_MOCK: "1", VERCEL_ENV: "production", NODE_ENV: "production" })).toBe(false);
+    expect(isMockEnabled({ BIGBUY_MOCK: "1", VERCEL_ENV: "production", NODE_ENV: "development" })).toBe(false);
+    expect(isMockEnabled({ BIGBUY_MOCK: "1", VERCEL_ENV: "production" })).toBe(false);
+    expect(
+      getMockFailure({ BIGBUY_MOCK: "1", BIGBUY_MOCK_FAIL: "upstream", VERCEL_ENV: "production", NODE_ENV: "production" }),
+    ).toBeNull();
+    // Preview de Vercel (construye con NODE_ENV=production): activo.
+    expect(isMockEnabled({ BIGBUY_MOCK: "1", VERCEL_ENV: "preview", NODE_ENV: "production" })).toBe(true);
+    // …pero solo con BIGBUY_MOCK=1 exacto.
+    expect(isMockEnabled({ VERCEL_ENV: "preview", NODE_ENV: "production" })).toBe(false);
+    expect(isMockEnabled({ BIGBUY_MOCK: "true", VERCEL_ENV: "preview", NODE_ENV: "production" })).toBe(false);
+    // `next start` local (production sin VERCEL_ENV): ignorado. Dev: activo.
+    expect(isMockEnabled({ BIGBUY_MOCK: "1", NODE_ENV: "production" })).toBe(false);
+    expect(isMockEnabled({ BIGBUY_MOCK: "1", NODE_ENV: "development" })).toBe(true);
+  });
+
   test("en producción BIGBUY_MOCK_FAIL también se ignora", () => {
     expect(getMockFailure({ BIGBUY_MOCK: "1", BIGBUY_MOCK_FAIL: "unauthorized", NODE_ENV: "production" })).toBeNull();
     expect(getMockFailure({ ...DEV, BIGBUY_MOCK_FAIL: "unauthorized" })).toBe("unauthorized");
