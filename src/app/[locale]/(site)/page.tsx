@@ -9,11 +9,5 @@ export default async function HomePage({
   const { locale } = params;
   setRequestLocale(locale);
 
-  if (process.env.STRIPE_WEBHOOK_SECRET) {
-    console.log("✅ Stripe Webhook Secret detectado correctamente en el servidor.");
-  } else {
-    console.warn("⚠️ Advertencia: STRIPE_WEBHOOK_SECRET no está definido.");
-  }
-
   return <Hero />;
 }

@@ -1,48 +1,62 @@
 import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
 
-// Inicializar Stripe con la clave secreta
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string, {
-  apiVersion: '2026-04-22.dahlia',
-});
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
 
-const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET as string;
+/**
+ * Webhook de Stripe. Stripe y el secreto se leen EN LA PETICIÓN, no al importar
+ * el módulo: así `next build` (que importa las rutas) no necesita ninguna clave
+ * y un despliegue sin Stripe configurado responde 503 en lugar de romper.
+ * Fail-closed: sin clave o sin secreto no se procesa nada. Al cliente nunca le
+ * llega el detalle del error (regla #8).
+ */
+let client: { key: string; stripe: Stripe } | null = null;
+
+function getStripe(key: string): Stripe {
+  if (!client || client.key !== key) {
+    client = { key, stripe: new Stripe(key, { apiVersion: '2026-04-22.dahlia' }) };
+  }
+  return client.stripe;
+}
 
 export async function POST(req: Request) {
+  const secretKey = process.env.STRIPE_SECRET_KEY;
+  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+  if (!secretKey || !webhookSecret) {
+    console.error('[stripe webhook] Stripe no está configurado');
+    return NextResponse.json({ error: 'Webhook no disponible' }, { status: 503 });
+  }
+
   try {
     const body = await req.text();
-    const signature = req.headers.get('stripe-signature') as string;
+    const signature = req.headers.get('stripe-signature');
 
     let event: Stripe.Event;
-
     try {
-      // Validar la firma criptográfica de Stripe
-      event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : String(err);
-      console.error(`❌ Validación de firma Stripe falló: ${message}`);
-      return NextResponse.json({ error: `Webhook Error: ${message}` }, { status: 400 });
+      // Validar la firma criptográfica de Stripe (primera línea de defensa, regla #2).
+      if (!signature) throw new Error('missing signature');
+      event = getStripe(secretKey).webhooks.constructEvent(body, signature, webhookSecret);
+    } catch {
+      console.error('[stripe webhook] firma no válida');
+      return NextResponse.json({ error: 'Firma no válida' }, { status: 400 });
     }
 
-    // Manejar el evento
     switch (event.type) {
       case 'checkout.session.completed': {
         const session = event.data.object as Stripe.Checkout.Session;
-        console.log(`✅ Checkout session completed exitosamente! ID: ${session.id}`);
-        
+        console.log(`[stripe webhook] checkout completado: ${session.id}`);
         // TODO: Extraer session.metadata.order_id y conectar con Supabase
-        // para marcar la orden como pagada antes de enviarla a CJDropshipping.
-        
+        // para marcar la orden como pagada antes de enviarla al proveedor.
         break;
       }
       default:
-        console.log(`🔔 Evento no manejado: ${event.type}`);
+        console.log(`[stripe webhook] evento no manejado: ${event.type}`);
     }
 
     return NextResponse.json({ received: true }, { status: 200 });
-  } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : String(error);
-    console.error(`❌ Error general en webhook de Stripe: ${message}`);
+  } catch {
+    console.error('[stripe webhook] error inesperado');
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
