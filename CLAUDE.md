@@ -5,7 +5,7 @@ Guía persistente para Claude Code. Tienda de **dropshipping de decoración de h
 ## Estado actual
 - **Hito 1 (frontend base) cerrado:** i18n bilingüe, Header/Footer, Hero, componentes base, seguridad de BD v2.
 - **Hito 2 cerrado:** catálogo real desde `products_public`, `ProductCard`, buscador tolerante a erratas (`pg_trgm` + `unaccent`), pulido visual y motion del storefront.
-- **Trabajando en: Hito 3 · Fase 3.4a** — ajustes de margen editables por Yosra en `/admin/ajustes` (3.3 cerrada y pusheada). Pendiente 3.4: envío por producto, publicar `draft→active`. Vercel aplazado hasta tener panel + productos.
+- **Trabajando en: Hito 3 · Fase 3.4a** — ajustes de margen editables por Yosra en `/admin/ajustes` (3.3 cerrada y pusheada). Pendiente 3.4: envío por producto, publicar `draft→active`. Desplegado en Vercel para que Yosra pruebe el panel (ver Despliegue).
 
 ## Área admin (3.2a)
 - Route groups: `[locale]/(site)` (Header/Footer/cortina) y `[locale]/(admin)/admin` (sin cromo del storefront; `(panel)` protegido). URLs sin cambios. **Admin solo ES** (middleware redirige `/en/admin/**`).
@@ -16,6 +16,13 @@ Guía persistente para Claude Code. Tienda de **dropshipping de decoración de h
 - **Importación (3.3):** botón "Importar" en cada tarjeta → modal (`ImportDialog`). El servidor calcula y valida TODO: `lib/pricing/{margin,settings,guard}.ts` (guarda de margen; defaults en `settings.ts` + overrides `MARGIN_*`; `marginSettings()` es el único punto a cambiar en 3.4) y `lib/admin/importProduct.ts` (`previewImport`/`importProduct`, auto-guardados). El cliente solo manda id, PVP, categoría (`STORE_CATEGORIES` en `lib/admin/import.types.ts`) y confirmación; coste/almacén/variantes salen del proveedor. Por debajo del mínimo (15 %) exige `confirmBelowMargin` (422 si no). Solo almacén UE explícito (fail-closed) y EUR. Escribe `products` + `product_variants` en `draft` con service role; idempotente (`ignoreDuplicates`, no pisa nada). **Con `BIGBUY_MOCK` NO escribe nada (simulación)**: dev comparte BD con producción.
 - **Ajustes de margen (3.4a):** `/admin/ajustes` → tabla `margin_settings` de **solo inserción** (cada guardado = fila nueva; la vigente es la más reciente; grants SELECT+INSERT solo a service_role + trigger que impide UPDATE/DELETE/TRUNCATE). Precedencia **BD > `MARGIN_*` > defaults**; si la BD falla, entorno/defaults con aviso "degradado". IVA fijo en código (`VAT_PCT = 21`). Estado de la fuente **único por proceso** (`globalThis`, porque Next empaqueta cada ruta por separado): guardar invalida la caché (30 s) que lee el modal. `lib/pricing/{settings,settingsInput,settingsStore}.ts` + `lib/admin/marginSettings.ts` (auto-guardadas). Dev sin tocar la BD: `MARGIN_SETTINGS_MEMORY=1` (ignorado en producción). Los tests nunca leen la BD real (`test/setup.ts` sustituye el almacén).
 - **Limitación conocida:** la búsqueda por texto filtra los productos de cada página que devuelve BigBuy (el endpoint de búsqueda real no está confirmado); por eso la UI dice "X de N revisados" y ofrece "Siguiente".
+
+## Despliegue (Vercel)
+- Proyecto `bc-concept` enlazado al repo. `vercel.json`: Bun (`bun install --frozen-lockfile` / `bun run build`), funciones en **`fra1`** (Supabase B&C está en eu-central-1).
+- **Push a `master` = producción.** La rama **`preview`** da el enlace fijo de Yosra (alias de rama); cualquier otra rama = preview efímera.
+- Variables: Supabase URL/anon y `ADMIN_*` en Production + Preview; `SUPABASE_SERVICE_ROLE_KEY` = la `sb_secret` **bc-prod** (Sensitive, la gestiona Sergio; nunca la de `.env.local`); `SITE_NOINDEX=1` en ambos hasta el lanzamiento; `BIGBUY_MOCK=1` **solo en Preview**. Stripe no hace falta para el build (el webhook responde 503 sin claves).
+- **Previews y producción comparten la BD de B&C:** importar en preview es simulación (mock), pero guardar en `/admin/ajustes` escribe filas reales.
+- Supabase Auth → URL Configuration: Site URL = producción; Redirect URLs con producción, alias de `preview` y localhost.
 
 ## Comandos
 - Runtime: **Bun** (nunca npm/yarn). `bun install`, `bun run dev`, `bun run build`.
