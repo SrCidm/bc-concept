@@ -302,4 +302,33 @@ describe("fronteras de la regla #1 (coste solo en superficies admin)", () => {
       "app/api/admin/suppliers/[supplier]/import/route.ts",
     ]);
   });
+  test("margin_settings: solo backend (SELECT + INSERT), solo inserción y sin acceso para anon/authenticated", () => {
+    for (const file of ["schema.sql", "migration_v2_5_margin_settings.sql"]) {
+      const sql = readFileSync(join(ROOT, "supabase", file), "utf8").replace(/--.*$/gm, "");
+      const table = sql.match(/CREATE TABLE IF NOT EXISTS public\.margin_settings \(([\s\S]*?)\n\);/);
+      expect({ file, table: table !== null }).toEqual({ file, table: true });
+      const cols = table![1];
+      // Importes y porcentajes en numeric (nunca float) y sin IVA (es fijo en código).
+      expect(cols).not.toMatch(/\b(real|double precision|float\d*)\b/i);
+      expect(cols).not.toMatch(/\bvat/i);
+      for (const c of ["returns_buffer_pct", "shipping_cost_default", "acquisition_cost", "min_margin_pct", "target_max_pct", "stripe_pct", "stripe_fixed"]) {
+        expect(cols).toMatch(new RegExp(`${c}\\s+NUMERIC\\(\\d+,2\\) NOT NULL`));
+      }
+      expect(cols).toMatch(/created_by\s+TEXT\s+NOT NULL/);
+      expect(cols).toMatch(/created_at\s+TIMESTAMPTZ NOT NULL DEFAULT NOW\(\)/);
+
+      expect(sql).toMatch(/ALTER TABLE public\.margin_settings ENABLE ROW LEVEL SECURITY/);
+      expect(sql).toMatch(/REVOKE ALL ON public\.margin_settings FROM PUBLIC, anon, authenticated/);
+      expect(sql).toMatch(/REVOKE UPDATE, DELETE, TRUNCATE[^;]*ON public\.margin_settings FROM service_role/);
+      // Única concesión: SELECT + INSERT a service_role.
+      const grants = [...sql.matchAll(/GRANT\s+([^;]*?)\s+ON\s+public\.margin_settings\s+TO\s+(\w+)/gi)].map((m) => `${m[1]} → ${m[2]}`);
+      expect(grants).toEqual(["SELECT, INSERT → service_role"]);
+      // Sin políticas (RLS sin políticas = nadie salvo service_role, que la salta).
+      expect(sql).not.toMatch(/CREATE POLICY[^;]*margin_settings/i);
+      // Solo inserción también para el propietario: triggers de UPDATE/DELETE y TRUNCATE.
+      expect(sql).toMatch(/BEFORE UPDATE OR DELETE ON public\.margin_settings\s+FOR EACH ROW EXECUTE FUNCTION public\.margin_settings_append_only\(\)/);
+      expect(sql).toMatch(/BEFORE TRUNCATE ON public\.margin_settings\s+FOR EACH STATEMENT EXECUTE FUNCTION public\.margin_settings_append_only\(\)/);
+      expect(sql).toMatch(/margin_settings_append_only\(\)[\s\S]*?SET search_path = ''/);
+    }
+  });
 });
