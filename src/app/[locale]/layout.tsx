@@ -5,6 +5,7 @@ import { NextIntlClientProvider } from "next-intl";
 import { getMessages, setRequestLocale } from "next-intl/server";
 import { routing, type Locale } from "@/i18n/routing";
 import { GsapProvider } from "@/components/providers/GsapProvider";
+import { siteRobots } from "@/lib/seo";
 import "../globals.css";
 
 const inter = Inter({
@@ -26,6 +27,8 @@ export function generateStaticParams() {
 }
 
 export const metadata: Metadata = {
+  // Fuera de buscadores mientras SITE_NOINDEX=1 (antes del lanzamiento).
+  ...siteRobots(),
   title: "B&C: Concept",
   description:
     "Decoración de hogar escandinavo-mediterránea, curada pieza a pieza para una vida serena y elegante.",

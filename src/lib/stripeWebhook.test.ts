@@ -31,7 +31,8 @@ describe("webhook de Stripe", () => {
     process.env.STRIPE_SECRET_KEY = "sk_test_dummy_for_tests";
     process.env.STRIPE_WEBHOOK_SECRET = "whsec_dummy_for_tests";
     const route = await import("@/app/api/stripe/webhook/route");
-    for (const headers of [{ "stripe-signature": "t=1,v1=abc" }, {}]) {
+    const cases: Record<string, string>[] = [{ "stripe-signature": "t=1,v1=abc" }, {}];
+    for (const headers of cases) {
       const r = await route.POST(req(headers));
       expect(r.status).toBe(400);
       const text = await r.text();
