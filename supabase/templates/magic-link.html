@@ -1,0 +1,115 @@
+<!--
+  B&C: Concept · Plantilla del correo "Magic Link" de Supabase Auth.
+  Dónde: Supabase → Authentication → Emails → Magic Link (pegar este HTML en "Body").
+  Asunto propuesto: Tu enlace de acceso · B&C: Concept
+
+  · HTML de email: tablas + estilos en línea (Gmail, Outlook, Apple Mail). Sin fuentes
+    web: Georgia para el título, pila sans del sistema para el cuerpo.
+  · Paleta bc-* (clara): fondo #F5F5F0, tarjeta #FFFFFF, borde #E5E5E0, texto #161708,
+    secundario #6B6B6B, oliva #40422D (botón).
+  · {{ .ConfirmationURL }} lo rellena Supabase (flujo PKCE: vuelve a /api/admin/auth/callback).
+  · Botón "a prueba de Outlook": celda de tabla + bloque VML para Outlook en Windows.
+-->
+<!DOCTYPE html>
+<html lang="es" xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="x-apple-disable-message-reformatting">
+  <meta name="color-scheme" content="light">
+  <meta name="supported-color-schemes" content="light">
+  <title>Tu enlace de acceso · B&amp;C: Concept</title>
+  <!--[if mso]>
+  <noscript><xml><o:OfficeDocumentSettings><o:PixelsPerInch>96</o:PixelsPerInch></o:OfficeDocumentSettings></xml></noscript>
+  <style>td, th, div, p, a, h1 { font-family: Arial, sans-serif; } .bc-serif { font-family: Georgia, 'Times New Roman', serif !important; }</style>
+  <![endif]-->
+</head>
+<body style="margin:0; padding:0; width:100%; background-color:#F5F5F0; -webkit-text-size-adjust:100%; -ms-text-size-adjust:100%;">
+  <!-- Texto de vista previa (bandeja de entrada); oculto en el cuerpo. -->
+  <div style="display:none; max-height:0; overflow:hidden; mso-hide:all; font-size:1px; line-height:1px; color:#F5F5F0; opacity:0;">
+    Tu enlace para acceder al panel de B&amp;C: Concept. Caduca pronto y solo sirve una vez.
+  </div>
+
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#F5F5F0;">
+    <tr>
+      <td align="center" style="padding:48px 16px;">
+
+        <!--[if mso]><table role="presentation" width="560" cellpadding="0" cellspacing="0" border="0"><tr><td><![endif]-->
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:560px;">
+
+          <!-- Marca -->
+          <tr>
+            <td align="left" style="padding:0 8px 24px 8px;">
+              <p class="bc-serif" style="margin:0; font-family:Georgia, 'Times New Roman', serif; font-size:22px; line-height:28px; letter-spacing:0.5px; color:#161708;">
+                B&amp;C: Concept
+              </p>
+            </td>
+          </tr>
+
+          <!-- Tarjeta -->
+          <tr>
+            <td style="background-color:#FFFFFF; border:1px solid #E5E5E0; border-radius:6px; padding:40px 36px;">
+
+              <h1 class="bc-serif" style="margin:0 0 16px 0; font-family:Georgia, 'Times New Roman', serif; font-size:28px; line-height:34px; font-weight:normal; color:#161708;">
+                Tu enlace de acceso
+              </h1>
+
+              <p style="margin:0 0 28px 0; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size:16px; line-height:26px; color:#6B6B6B;">
+                Has pedido entrar en el panel de B&amp;C: Concept. Pulsa el botón para acceder; no hace falta contraseña.
+              </p>
+
+              <!-- Botón -->
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td align="center" bgcolor="#40422D" style="border-radius:4px; background-color:#40422D;">
+                    <!--[if mso]>
+                    <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="{{ .ConfirmationURL }}" style="height:48px; v-text-anchor:middle; width:220px;" arcsize="9%" stroke="f" fillcolor="#40422D">
+                      <w:anchorlock/>
+                      <center style="color:#FFFFFF; font-family:Arial, sans-serif; font-size:15px;">Acceder al panel</center>
+                    </v:roundrect>
+                    <![endif]-->
+                    <!--[if !mso]><!-->
+                    <a href="{{ .ConfirmationURL }}" target="_blank" style="display:inline-block; padding:14px 32px; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size:15px; line-height:20px; color:#FFFFFF; text-decoration:none; border-radius:4px; background-color:#40422D;">
+                      Acceder al panel
+                    </a>
+                    <!--<![endif]-->
+                  </td>
+                </tr>
+              </table>
+
+              <p style="margin:28px 0 0 0; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size:14px; line-height:22px; color:#6B6B6B;">
+                Por seguridad, el enlace caduca pronto y solo puede usarse una vez.
+              </p>
+
+              <!-- Separador -->
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                <tr><td style="padding:28px 0 0 0; border-bottom:1px solid #E5E5E0; font-size:0; line-height:0;">&nbsp;</td></tr>
+              </table>
+
+              <p style="margin:24px 0 8px 0; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size:13px; line-height:20px; color:#6B6B6B;">
+                Si el botón no funciona, copia y pega este enlace en tu navegador:
+              </p>
+              <p style="margin:0; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size:13px; line-height:20px; word-break:break-all;">
+                <a href="{{ .ConfirmationURL }}" target="_blank" style="color:#40422D; text-decoration:underline;">{{ .ConfirmationURL }}</a>
+              </p>
+            </td>
+          </tr>
+
+          <!-- Pie -->
+          <tr>
+            <td style="padding:24px 8px 0 8px;">
+              <p style="margin:0; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size:13px; line-height:20px; color:#6B6B6B;">
+                Si no lo has pedido, ignora este correo.
+              </p>
+            </td>
+          </tr>
+
+        </table>
+        <!--[if mso]></td></tr></table><![endif]-->
+
+      </td>
+    </tr>
+  </table>
+</body>
+</html>

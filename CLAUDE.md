@@ -10,7 +10,7 @@ Guía persistente para Claude Code. Tienda de **dropshipping de decoración de h
 ## Storefront: rutas y páginas
 - **Rutas localizadas** (next-intl `pathnames` en `src/i18n/routing.ts`): clave = carpeta interna, valor = URL por idioma. Colección `/coleccion` · `/en/collection` (carpeta `catalog`), `/sobre-nosotros` · `/en/about`, `/contacto` · `/en/contact`. `Link`/`router` de `@/i18n/navigation` están **tipados** (`AppHref`/`StaticHref`/`RouterHref`): solo claves de `pathnames`; con query, `{ pathname, query }`. Ruta nueva → añadirla a `pathnames`.
 - `/catalog`, `/es/catalog`, `/en/catalog` → **308** a la colección localizada conservando la query (`lib/legacyRedirects.ts`, en el middleware). `/admin/**` y `/api/**` fuera de la negociación de idioma (test `localizedRoutes.test.ts` con el middleware real).
-- **Sobre nosotros: copy en BORRADOR pendiente de revisión** (Sergio + Yosra), sin años, cifras ni promesas. Ojo: "solo piezas enviadas desde almacenes en la UE" depende de cerrar la deuda del filtro UE fail-closed (abajo).
+- **Sobre nosotros: copy en BORRADOR pendiente de revisión** (Sergio + Yosra), sin años, cifras ni promesas. "Solo piezas enviadas desde almacenes en la UE" es correcto para el catálogo: la importación es fail-closed (solo entra almacén UE explícito); la deuda del filtro UE afecta solo al listado del panel.
 - **Contacto:** email desde `CONTACT_EMAIL` (servidor, leída en el build: cambiarla = redesplegar; validada en `lib/contact.ts`). Sin ella la página no muestra ningún email. Plazo: "Solemos responder en 1–2 días laborables". Sin formulario.
 
 ## Storefront: 404
