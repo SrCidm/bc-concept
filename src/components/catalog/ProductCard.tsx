@@ -1,6 +1,6 @@
 import Image from "next/image";
 import { getLocale } from "next-intl/server";
-import { Link } from "@/i18n/navigation";
+import { Link, type AppHref } from "@/i18n/navigation";
 import { DeliveryBadge } from "@/components/ui/DeliveryBadge";
 import type { ProductPublic } from "@/types/product";
 
@@ -23,7 +23,9 @@ export async function ProductCard({ product, priority = false }: ProductCardProp
     currency: product.currency,
   }).format(product.price_retail);
   const image = product.images[0];
-  const href = product.slug ? `/product/${product.slug}` : "/catalog";
+  const href: AppHref = product.slug
+    ? { pathname: "/product/[slug]", params: { slug: product.slug } }
+    : "/catalog";
 
   return (
     <Link

@@ -2,6 +2,7 @@ import createMiddleware from "next-intl/middleware";
 import { NextResponse, type NextRequest } from "next/server";
 import { routing } from "./i18n/routing";
 import { adminSpanishPath, isAdminPath } from "./lib/adminLocale";
+import { legacyRedirectPath } from "./lib/legacyRedirects";
 
 const intlMiddleware = createMiddleware(routing);
 // El admin es solo ES: sin detección de idioma (cookie NEXT_LOCALE / Accept-Language),
@@ -9,6 +10,14 @@ const intlMiddleware = createMiddleware(routing);
 const adminIntlMiddleware = createMiddleware({ ...routing, localeDetection: false });
 
 export default function middleware(req: NextRequest) {
+  // URLs antiguas de la colección (/catalog, /en/catalog): 308 a la localizada,
+  // conservando la query (?q=, filtros).
+  const legacy = legacyRedirectPath(req.nextUrl.pathname);
+  if (legacy) {
+    const url = req.nextUrl.clone();
+    url.pathname = legacy;
+    return NextResponse.redirect(url, 308);
+  }
   // Admin solo en ES: /en/admin/** → /admin/** (antes de cualquier render).
   const spanish = adminSpanishPath(req.nextUrl.pathname);
   if (spanish) {

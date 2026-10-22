@@ -34,7 +34,7 @@ export default function GlobalNotFound() {
               </li>
               <li>
                 <a
-                  href="/catalog"
+                  href="/coleccion"
                   className={`${linkBase} border border-bc-accent text-bc-accent hover:bg-bc-accent hover:text-bc-surface`}
                 >
                   {t.collection}

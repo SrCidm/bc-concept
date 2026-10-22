@@ -65,7 +65,7 @@ const hasFineHover = () =>
   typeof window !== "undefined" &&
   window.matchMedia("(hover: hover) and (pointer: fine)").matches;
 
-/** Search form → /catalog?q=… (locale-aware). Client Component. */
+/** Search form → colección con ?q= (/coleccion · /en/collection). Client Component. */
 export function SearchBox({
   label,
   placeholder,
@@ -152,7 +152,7 @@ export function SearchBox({
   const submit = () => {
     const q = value.trim();
     if (!q) return false;
-    router.push(`/catalog?q=${encodeURIComponent(q)}`);
+    router.push({ pathname: "/catalog", query: { q } });
     onSubmitted?.();
     return true;
   };

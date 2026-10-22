@@ -1,11 +1,11 @@
 import { getTranslations } from "next-intl/server";
-import { Link } from "@/i18n/navigation";
+import { Link, type AppHref } from "@/i18n/navigation";
 import { Reveal } from "@/components/motion/Reveal";
 
 /** Generic error: never exposes internal details (regla #8). */
 export async function CatalogError({ query }: { query: string }) {
   const t = await getTranslations("catalog");
-  const href = query ? `/catalog?q=${encodeURIComponent(query)}` : "/catalog";
+  const href: AppHref = query ? { pathname: "/catalog", query: { q: query } } : "/catalog";
 
   return (
     <Reveal className="py-4 md:py-8 max-w-prose" variant="fade">

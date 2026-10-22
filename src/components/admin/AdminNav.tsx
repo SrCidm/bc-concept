@@ -1,9 +1,9 @@
 "use client";
 
-import { Link, usePathname } from "@/i18n/navigation";
+import { Link, usePathname, type StaticHref } from "@/i18n/navigation";
 
 interface AdminNavItem {
-  href: string;
+  href: StaticHref;
   label: string;
 }
 

@@ -1,5 +1,5 @@
 import { useTranslations } from "next-intl";
-import { Link } from "@/i18n/navigation";
+import { Link, type AppHref } from "@/i18n/navigation";
 
 const linkClasses =
   "inline-flex items-center justify-center min-h-11 min-w-11 px-4 rounded-bc border border-bc-border bg-bc-surface text-sm text-bc-text-primary " +
@@ -21,7 +21,7 @@ export function ImportPagination({
 }: {
   page: number;
   hasMore: boolean;
-  hrefFor: (page: number) => string;
+  hrefFor: (page: number) => AppHref;
 }) {
   const t = useTranslations("admin.import.pagination");
   if (page <= 1 && !hasMore) return null;

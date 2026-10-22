@@ -3,6 +3,7 @@
 import { useState, useTransition, type FormEvent } from "react";
 import { useTranslations } from "next-intl";
 import { Link, useRouter } from "@/i18n/navigation";
+import { importHref } from "@/components/admin/import/importHref";
 
 const checkboxLabel =
   "inline-flex items-center gap-2.5 min-h-11 cursor-pointer text-sm text-bc-text-primary select-none";
@@ -40,7 +41,7 @@ export function ImportSearchForm({ q, eu, stock }: Props) {
     if (!euOnly) p.set("eu", "0");
     if (!inStock) p.set("stock", "0");
     const qs = p.toString();
-    startTransition(() => router.push(qs ? `/admin/import?${qs}` : "/admin/import"));
+    startTransition(() => router.push(importHref(qs)));
   }
 
   return (

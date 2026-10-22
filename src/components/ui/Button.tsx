@@ -1,5 +1,5 @@
 import React from "react";
-import { Link } from "@/i18n/navigation";
+import { Link, type AppHref } from "@/i18n/navigation";
 
 type ButtonVariant = "primary" | "outline" | "ghost";
 type ButtonSize = "md" | "lg";
@@ -16,10 +16,18 @@ type ButtonAsButton = BaseProps &
     href?: undefined;
   };
 
+/** Enlaces fuera de la app (`<a>` normal): email, teléfono o web externa. */
+export type ExternalHref = `mailto:${string}` | `tel:${string}` | `https://${string}`;
+
 type ButtonAsAnchor = BaseProps &
-  Omit<React.AnchorHTMLAttributes<HTMLAnchorElement>, "className"> & {
-    href: string;
+  Omit<React.AnchorHTMLAttributes<HTMLAnchorElement>, "className" | "href"> & {
+    /** Ruta interna tipada (`routing.pathnames`) o enlace externo. */
+    href: AppHref | ExternalHref;
   };
+
+function isExternalHref(href: AppHref | ExternalHref): href is ExternalHref {
+  return typeof href === "string" && /^(mailto:|tel:|https:\/\/)/.test(href);
+}
 
 export type ButtonProps = ButtonAsButton | ButtonAsAnchor;
 
@@ -60,12 +68,12 @@ export function Button({
 
   if (props.href !== undefined) {
     const { href, ...rest } = props as ButtonAsAnchor;
-    // Rutas internas: Link con locale (navegación SPA, conserva /en y permite
-    // la transición de ruta). Externas/mailto: <a> normal.
-    if (href.startsWith("/") && !href.startsWith("//")) {
-      return <Link href={href} className={classes} {...rest} />;
+    // Rutas internas: Link con locale (navegación SPA, URL localizada y
+    // transición de ruta). Externas/mailto: <a> normal.
+    if (isExternalHref(href)) {
+      return <a href={href} className={classes} {...rest} />;
     }
-    return <a href={href} className={classes} {...rest} />;
+    return <Link href={href} className={classes} {...rest} />;
   }
 
   const { ...rest } = props as ButtonAsButton;

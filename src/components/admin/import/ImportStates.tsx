@@ -1,5 +1,5 @@
 import { useTranslations } from "next-intl";
-import { Link } from "@/i18n/navigation";
+import { Link, type AppHref } from "@/i18n/navigation";
 
 const actionClasses =
   "inline-flex items-center justify-center min-h-11 px-5 rounded-bc border border-bc-accent text-sm text-bc-accent " +
@@ -28,9 +28,9 @@ export function ImportEmpty({
   nextHref,
 }: {
   q: string;
-  clearHref: string;
+  clearHref: AppHref;
   /** Si hay más páginas y hay búsqueda de texto, ofrece seguir buscando. */
-  nextHref: string | null;
+  nextHref: AppHref | null;
 }) {
   const t = useTranslations("admin.import.empty");
   return (
@@ -71,7 +71,7 @@ const isKnown = (c: string): c is KnownCode => (KNOWN_CODES as readonly string[]
  * Error del proveedor por CÓDIGO (nunca por mensaje del proveedor). Reintentar es
  * un enlace normal (recarga completa) para saltarse la caché de navegación.
  */
-export function ImportError({ code, retryHref, clearHref }: { code: string; retryHref: string; clearHref?: string }) {
+export function ImportError({ code, retryHref, clearHref }: { code: string; retryHref: string; clearHref?: AppHref }) {
   const t = useTranslations("admin.import.error");
   const key = isKnown(code) ? code : "generic";
   const retryable = code !== "not_configured" && code !== "invalid_request";

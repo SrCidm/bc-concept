@@ -1,5 +1,5 @@
 import { getTranslations } from "next-intl/server";
-import { Link } from "@/i18n/navigation";
+import { Link, type StaticHref } from "@/i18n/navigation";
 import { AdminNav } from "@/components/admin/AdminNav";
 import { BackToStoreLink } from "@/components/admin/BackToStoreLink";
 
@@ -12,7 +12,7 @@ const actionClasses =
 /** Barra superior del panel. Server Component: recibe el email ya verificado. */
 export async function AdminTopBar({ email }: { email: string }) {
   const t = await getTranslations("admin.topbar");
-  const items = [
+  const items: { href: StaticHref; label: string }[] = [
     { href: "/admin/import", label: t("nav.import") },
     { href: "/admin/ajustes", label: t("nav.settings") },
   ];

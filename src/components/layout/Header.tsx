@@ -1,4 +1,5 @@
 import { getTranslations } from "next-intl/server";
+import type { StaticHref } from "@/i18n/navigation";
 import { HeaderClient } from "./HeaderClient";
 
 /**
@@ -10,7 +11,7 @@ export async function Header() {
   const tNav = await getTranslations("nav");
   const tCommon = await getTranslations("common");
 
-  const navItems = [
+  const navItems: { label: string; href: StaticHref }[] = [
     { label: tNav("home"), href: "/" },
     { label: tNav("collection"), href: "/catalog" },
     { label: tNav("about"), href: "/sobre-nosotros" },

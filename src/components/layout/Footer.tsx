@@ -1,5 +1,5 @@
 import { getTranslations } from "next-intl/server";
-import { Link } from "@/i18n/navigation";
+import { Link, type AppHref } from "@/i18n/navigation";
 import { Container } from "@/components/ui/Container";
 import { Reveal } from "@/components/motion/Reveal";
 
@@ -9,23 +9,25 @@ import { Reveal } from "@/components/motion/Reveal";
  * secundario nunca baja de bc-surface/70 sobre el oliva.
  * 4 columnas desktop, 2 columnas móvil, marca a ancho completo.
  */
+type FooterLink = { label: string; href: AppHref };
+
 export async function Footer() {
   const t = await getTranslations("footer");
 
-  const shopLinks = [
+  const shopLinks: FooterLink[] = [
     { label: t("all"), href: "/catalog" },
-    { label: t("lighting"), href: "/catalog?cat=lighting" },
-    { label: t("textiles"), href: "/catalog?cat=textiles" },
-    { label: t("deco"), href: "/catalog?cat=deco" },
+    { label: t("lighting"), href: { pathname: "/catalog", query: { cat: "lighting" } } },
+    { label: t("textiles"), href: { pathname: "/catalog", query: { cat: "textiles" } } },
+    { label: t("deco"), href: { pathname: "/catalog", query: { cat: "deco" } } },
   ];
 
-  const infoLinks = [
+  const infoLinks: FooterLink[] = [
     { label: t("about"), href: "/sobre-nosotros" },
     { label: t("shipping"), href: "/envios" },
     { label: t("contact"), href: "/contacto" },
   ];
 
-  const legalLinks = [
+  const legalLinks: FooterLink[] = [
     { label: t("terms"), href: "/aviso-legal" },
     { label: t("privacy"), href: "/privacidad" },
     { label: t("cookies"), href: "/cookies" },
@@ -69,7 +71,7 @@ export async function Footer() {
             <h2 className={columnTitleClasses}>{t("shop")}</h2>
             <ul className="flex flex-col gap-2.5">
               {shopLinks.map((link) => (
-                <li key={link.href}>
+                <li key={link.label}>
                   <Link href={link.href} className={footerLinkClasses}>
                     {link.label}
                   </Link>
@@ -83,7 +85,7 @@ export async function Footer() {
             <h2 className={columnTitleClasses}>{t("info")}</h2>
             <ul className="flex flex-col gap-2.5">
               {infoLinks.map((link) => (
-                <li key={link.href}>
+                <li key={link.label}>
                   <Link href={link.href} className={footerLinkClasses}>
                     {link.label}
                   </Link>
@@ -97,7 +99,7 @@ export async function Footer() {
             <h2 className={columnTitleClasses}>{t("legal")}</h2>
             <ul className="flex flex-col gap-2.5">
               {legalLinks.map((link) => (
-                <li key={link.href}>
+                <li key={link.label}>
                   <Link href={link.href} className={footerLinkClasses}>
                     {link.label}
                   </Link>

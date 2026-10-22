@@ -408,5 +408,32 @@
     "body": "Puede que el enlace haya cambiado o que la pieza ya no forme parte de la colección. Te proponemos seguir por aquí.",
     "home": "Volver al inicio",
     "collection": "Ver la colección"
+  },
+  "about": {
+    "metaTitle": "Sobre nosotros · B&C: Concept",
+    "metaDescription": "Decoración de hogar escandinavo-mediterránea, seleccionada pieza a pieza por Yosra y Sergio.",
+    "title": "Sobre nosotros",
+    "tagline": "El equilibrio entre visión y diseño.",
+    "intro": "B&C: Concept nace de la vida real, no de una oficina. Somos Yosra y Sergio, y creemos que tener un hogar que te represente no debería ser una tarea agotadora.",
+    "valuesLabel": "Lo que nos guía",
+    "curationTitle": "Curaduría con criterio",
+    "curationBody": "Yosra selecciona cada pieza con un criterio claro de calidad y precio justo. Preferimos una colección corta y pensada a un catálogo interminable.",
+    "aestheticTitle": "Una estética serena",
+    "aestheticBody": "Nos inspiran el diseño escandinavo y la luz del Mediterráneo: materiales honestos, tonos cálidos y piezas que acompañan sin imponerse.",
+    "europeTitle": "Desde la Unión Europea",
+    "europeBody": "Solo seleccionamos piezas que se envían desde almacenes situados en la Unión Europea.",
+    "closing": "Sergio construye la tienda para que comprar sea tan sencillo y tranquilo como las piezas que elegimos. Juntos unimos criterio y diseño para que encuentres tu estilo sin tener que buscarlo en todas partes.",
+    "cta": "Ver la colección"
+  },
+  "contact": {
+    "metaTitle": "Contacto · B&C: Concept",
+    "metaDescription": "Escríbenos para cualquier pregunta sobre una pieza o un pedido.",
+    "title": "Contacto",
+    "intro": "¿Tienes una pregunta sobre una pieza o un pedido? Escríbenos y te responderemos.",
+    "emailLabel": "Email",
+    "responseTime": "Solemos responder en 1–2 días laborables.",
+    "unavailable": "El email de contacto estará disponible aquí en breve.",
+    "collectionPrompt": "Mientras tanto, puedes seguir descubriendo la colección.",
+    "cta": "Ver la colección"
   }
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback, Suspense } from "react";
-import { Link } from "@/i18n/navigation";
+import { Link, type StaticHref } from "@/i18n/navigation";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { SearchBox } from "@/components/layout/SearchBox";
 import { CartButton } from "@/components/layout/CartButton";
@@ -9,7 +9,7 @@ import { iconControlClasses } from "@/components/layout/controlStyles";
 
 interface NavItem {
   label: string;
-  href: string;
+  href: StaticHref;
 }
 
 interface HeaderClientProps {

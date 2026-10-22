@@ -85,5 +85,32 @@
     "body": "The link may have changed, or the piece is no longer part of the collection. You can carry on from here.",
     "home": "Back to home",
     "collection": "View the collection"
+  },
+  "about": {
+    "metaTitle": "About us · B&C: Concept",
+    "metaDescription": "Scandinavian-Mediterranean home decor, chosen piece by piece by Yosra and Sergio.",
+    "title": "About us",
+    "tagline": "The balance between vision and design.",
+    "intro": "B&C: Concept was born from real life, not from an office. We are Yosra and Sergio, and we believe that creating a home that feels like yours shouldn't be exhausting.",
+    "valuesLabel": "What guides us",
+    "curationTitle": "Curation with criteria",
+    "curationBody": "Yosra chooses every piece with a clear standard of quality and fair price. We prefer a short, considered collection to an endless catalogue.",
+    "aestheticTitle": "A serene aesthetic",
+    "aestheticBody": "We draw on Scandinavian design and Mediterranean light: honest materials, warm tones and pieces that accompany a space without imposing on it.",
+    "europeTitle": "From the European Union",
+    "europeBody": "We only select pieces that ship from warehouses located in the European Union.",
+    "closing": "Sergio builds the shop so that buying feels as simple and calm as the pieces we choose. Together we bring criteria and design together, so you can find your style without searching everywhere.",
+    "cta": "View the collection"
+  },
+  "contact": {
+    "metaTitle": "Contact · B&C: Concept",
+    "metaDescription": "Write to us with any question about a piece or an order.",
+    "title": "Contact",
+    "intro": "Do you have a question about a piece or an order? Write to us and we'll get back to you.",
+    "emailLabel": "Email",
+    "responseTime": "We usually reply within 1–2 working days.",
+    "unavailable": "Our contact email will be available here shortly.",
+    "collectionPrompt": "In the meantime, you can keep exploring the collection.",
+    "cta": "View the collection"
   }
 }

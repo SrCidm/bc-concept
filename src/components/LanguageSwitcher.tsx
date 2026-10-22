@@ -1,12 +1,15 @@
 "use client";
 
+import { useParams } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
-import { useRouter, usePathname } from "@/i18n/navigation";
+import { useRouter, usePathname, type RouterHref } from "@/i18n/navigation";
 import { routing, type Locale } from "@/i18n/routing";
 
 /**
  * LanguageSwitcher — Client Component.
- * Switches locale while preserving the current pathname.
+ * Cambia de idioma conservando la ruta (que next-intl traduce: `/coleccion` ↔
+ * `/en/collection`), sus parámetros y la query (`?q=`). La query se lee al
+ * pulsar (no con useSearchParams, que sacaría de SSG a las páginas estáticas).
  * Uses aria-pressed to communicate the active locale to assistive tech.
  */
 export function LanguageSwitcher() {
@@ -15,9 +18,15 @@ export function LanguageSwitcher() {
   const pathname = usePathname();
   const t = useTranslations("common");
 
+  const params = useParams();
+
   const handleSwitch = (nextLocale: Locale) => {
     if (nextLocale === locale) return;
-    router.replace(pathname, { locale: nextLocale });
+    const query = Object.fromEntries(new URLSearchParams(window.location.search));
+    // `pathname` es la ruta interna (p. ej. "/product/[slug]") y `params` trae
+    // sus valores: juntos forman un destino válido para cualquier ruta.
+    const href = { pathname, params, query } as RouterHref;
+    router.replace(href, { locale: nextLocale });
   };
 
   return (

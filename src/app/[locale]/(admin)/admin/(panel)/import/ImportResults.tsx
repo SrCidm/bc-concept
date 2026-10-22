@@ -1,13 +1,13 @@
 import { getTranslations } from "next-intl/server";
 import { listAdminCatalog } from "@/lib/admin/catalog";
 import { importQueryString, type ImportParams } from "@/lib/admin/importParams";
+import { importHref } from "@/components/admin/import/importHref";
 import { requireAdminPage } from "@/lib/auth/requireAdmin";
 import { ImportEmpty, ImportError, MockBanner } from "@/components/admin/import/ImportStates";
 import { ImportGrid } from "@/components/admin/import/ImportGrid";
 import { ImportPagination } from "@/components/admin/import/ImportPagination";
 
 const BASE = "/admin/import";
-const href = (qs: string) => (qs ? `${BASE}?${qs}` : BASE);
 
 /**
  * Resultados del catálogo. Server Component dentro de <Suspense>: pide los datos
@@ -17,8 +17,10 @@ const href = (qs: string) => (qs ? `${BASE}?${qs}` : BASE);
 export async function ImportResults({ params }: { params: Extract<ImportParams, { ok: true }> }) {
   const t = await getTranslations("admin.import");
   const { query, ui } = params;
-  const here = href(importQueryString(ui));
-  const clearHref = BASE;
+  // Reintento: <a> con recarga completa (string); el resto, enlaces tipados.
+  const qs = importQueryString(ui);
+  const here = qs ? `${BASE}?${qs}` : BASE;
+  const clearHref = importHref("");
 
   const result = await listAdminCatalog(query);
 
@@ -30,7 +32,7 @@ export async function ImportResults({ params }: { params: Extract<ImportParams, 
   }
 
   const { data, source } = result;
-  const pageHref = (page: number) => href(importQueryString({ ...ui, page }));
+  const pageHref = (page: number) => importHref(importQueryString({ ...ui, page }));
 
   return (
     <div>

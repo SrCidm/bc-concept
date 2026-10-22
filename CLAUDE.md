@@ -7,6 +7,12 @@ Guía persistente para Claude Code. Tienda de **dropshipping de decoración de h
 - **Hito 2 cerrado:** catálogo real desde `products_public`, `ProductCard`, buscador tolerante a erratas (`pg_trgm` + `unaccent`), pulido visual y motion del storefront.
 - **Trabajando en: Hito 3 · Fase 3.4a** — ajustes de margen editables por Yosra en `/admin/ajustes` (3.3 cerrada y pusheada). Pendiente 3.4: envío por producto, publicar `draft→active`. Desplegado en Vercel para que Yosra pruebe el panel (ver Despliegue).
 
+## Storefront: rutas y páginas
+- **Rutas localizadas** (next-intl `pathnames` en `src/i18n/routing.ts`): clave = carpeta interna, valor = URL por idioma. Colección `/coleccion` · `/en/collection` (carpeta `catalog`), `/sobre-nosotros` · `/en/about`, `/contacto` · `/en/contact`. `Link`/`router` de `@/i18n/navigation` están **tipados** (`AppHref`/`StaticHref`/`RouterHref`): solo claves de `pathnames`; con query, `{ pathname, query }`. Ruta nueva → añadirla a `pathnames`.
+- `/catalog`, `/es/catalog`, `/en/catalog` → **308** a la colección localizada conservando la query (`lib/legacyRedirects.ts`, en el middleware). `/admin/**` y `/api/**` fuera de la negociación de idioma (test `localizedRoutes.test.ts` con el middleware real).
+- **Sobre nosotros: copy en BORRADOR pendiente de revisión** (Sergio + Yosra), sin años, cifras ni promesas. Ojo: "solo piezas enviadas desde almacenes en la UE" depende de cerrar la deuda del filtro UE fail-closed (abajo).
+- **Contacto:** email desde `CONTACT_EMAIL` (servidor, leída en el build: cambiarla = redesplegar; validada en `lib/contact.ts`). Sin ella la página no muestra ningún email. Plazo: "Solemos responder en 1–2 días laborables". Sin formulario.
+
 ## Storefront: 404
 - `[locale]/(site)/[...rest]` lanza `notFound()` → `(site)/not-found.tsx` (marca, Header/Footer, ES/EN): **404 real + noindex**. En Next 14 el HTML inicial de un `notFound()` es un shell de error y la vista la pinta el cliente. `[locale]/layout` tiene `dynamicParams = false`: un primer segmento que no es locale (p. ej. `/x.txt`, no pasa por el middleware) va al 404 raíz `app/not-found.tsx` (layout raíz de paso), que Next 14 sirve sin CSS (lista legible).
 
