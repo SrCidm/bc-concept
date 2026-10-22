@@ -54,7 +54,10 @@
     "topbar": {
       "skip": "Saltar al contenido",
       "navLabel": "Navegación del panel",
-      "nav": { "import": "Importar", "settings": "Ajustes" },
+      "nav": {
+        "import": "Importar",
+        "settings": "Ajustes"
+      },
       "backToStore": "Volver a la tienda",
       "signOut": "Cerrar sesión"
     },
@@ -398,5 +401,12 @@
     "privacy": "Privacidad",
     "cookies": "Cookies",
     "returns": "Devoluciones (14 días)"
+  },
+  "notFound": {
+    "eyebrow": "Error 404",
+    "title": "Esta página no existe",
+    "body": "Puede que el enlace haya cambiado o que la pieza ya no forme parte de la colección. Te proponemos seguir por aquí.",
+    "home": "Volver al inicio",
+    "collection": "Ver la colección"
   }
 }

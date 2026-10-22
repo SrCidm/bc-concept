@@ -7,6 +7,9 @@ Guía persistente para Claude Code. Tienda de **dropshipping de decoración de h
 - **Hito 2 cerrado:** catálogo real desde `products_public`, `ProductCard`, buscador tolerante a erratas (`pg_trgm` + `unaccent`), pulido visual y motion del storefront.
 - **Trabajando en: Hito 3 · Fase 3.4a** — ajustes de margen editables por Yosra en `/admin/ajustes` (3.3 cerrada y pusheada). Pendiente 3.4: envío por producto, publicar `draft→active`. Desplegado en Vercel para que Yosra pruebe el panel (ver Despliegue).
 
+## Storefront: 404
+- `[locale]/(site)/[...rest]` lanza `notFound()` → `(site)/not-found.tsx` (marca, Header/Footer, ES/EN): **404 real + noindex**. En Next 14 el HTML inicial de un `notFound()` es un shell de error y la vista la pinta el cliente. `[locale]/layout` tiene `dynamicParams = false`: un primer segmento que no es locale (p. ej. `/x.txt`, no pasa por el middleware) va al 404 raíz `app/not-found.tsx` (layout raíz de paso), que Next 14 sirve sin CSS (lista legible).
+
 ## Área admin (3.2a)
 - Route groups: `[locale]/(site)` (Header/Footer/cortina) y `[locale]/(admin)/admin` (sin cromo del storefront; `(panel)` protegido). URLs sin cambios. **Admin solo ES** (middleware redirige `/en/admin/**`).
 - **Authz en capas, el layout NO es frontera** (no se re-ejecuta en navegación cliente): cada `page.tsx` de `(panel)` llama a `requireAdminPage()`; `listAdminCatalog()` (`src/lib/admin/catalog.ts`) exige la sesión él mismo (test con adaptador espía); `/api/admin/**` con `requireAdmin` primero. `boundaries.test.ts` lo vigila.

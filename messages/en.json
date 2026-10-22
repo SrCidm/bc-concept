@@ -78,5 +78,12 @@
     "privacy": "Privacy",
     "cookies": "Cookies",
     "returns": "Returns (14 days)"
+  },
+  "notFound": {
+    "eyebrow": "Error 404",
+    "title": "This page doesn't exist",
+    "body": "The link may have changed, or the piece is no longer part of the collection. You can carry on from here.",
+    "home": "Back to home",
+    "collection": "View the collection"
   }
 }

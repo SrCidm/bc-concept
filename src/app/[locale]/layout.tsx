@@ -1,26 +1,17 @@
 import type { Metadata } from "next";
-import { Inter, Playfair_Display } from "next/font/google";
 import { notFound } from "next/navigation";
 import { NextIntlClientProvider } from "next-intl";
 import { getMessages, setRequestLocale } from "next-intl/server";
 import { routing, type Locale } from "@/i18n/routing";
 import { GsapProvider } from "@/components/providers/GsapProvider";
 import { siteRobots } from "@/lib/seo";
+import { inter, playfair } from "@/lib/fonts";
 import "../globals.css";
 
-const inter = Inter({
-  subsets: ["latin"],
-  variable: "--font-inter",
-  display: "swap",
-});
-
-const playfair = Playfair_Display({
-  subsets: ["latin"],
-  // Cursiva real (el tagline del Hero): sin esto el navegador la sintetiza.
-  style: ["normal", "italic"],
-  variable: "--font-playfair",
-  display: "swap",
-});
+// Solo los locales conocidos: cualquier otro primer segmento (p. ej. `/x.txt`,
+// que no pasa por el middleware) no encaja en ninguna ruta y Next sirve el 404
+// raíz (`app/not-found.tsx`) renderizado en el servidor y con estilos.
+export const dynamicParams = false;
 
 export function generateStaticParams() {
   return routing.locales.map((locale) => ({ locale }));
