@@ -50,6 +50,7 @@ Guía persistente para Claude Code. Tienda de **dropshipping de decoración de h
 - Server Components por defecto; `"use client"` solo para estado/animación/interacción.
 - Estilos: Tailwind con tokens **`bc-*`** (ver `tailwind.config.ts`). Nunca colores hardcodeados ni estilos inline.
 - Tipografía: Playfair Display (headings) + Inter (body) vía `next/font`.
+- **Mensajes al cliente recortados por zona** (`src/i18n/clientMessages.ts`): el layout de idioma pasa solo `common`, `siteRibbon`, `catalog`; `(admin)/admin/layout.tsx` abre su propio `NextIntlClientProvider` con `admin.*` (nunca en el HTML del storefront). Componente cliente con un namespace nuevo → añadirlo a su lista (lo vigila `clientMessages.test.ts`).
 - i18n: **next-intl v4**, `localePrefix: 'as-needed'`. ES por defecto (`/`), EN en `/en`. `<html>`/`<body>` viven en `app/[locale]/layout.tsx` (con `import "../globals.css"`). Sin AR/RTL.
 - Estado cliente: **Zustand** (cesta persistente) + Context puntual.
 - BD: **Supabase** (`@supabase/supabase-js`, `@supabase/ssr`). **No Prisma.**

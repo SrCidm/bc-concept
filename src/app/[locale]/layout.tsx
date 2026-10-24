@@ -4,6 +4,7 @@ import { NextIntlClientProvider } from "next-intl";
 import { getMessages, setRequestLocale } from "next-intl/server";
 import { routing, type Locale } from "@/i18n/routing";
 import { GsapProvider } from "@/components/providers/GsapProvider";
+import { SITE_CLIENT_NAMESPACES, pickMessages } from "@/i18n/clientMessages";
 import { siteRobots } from "@/lib/seo";
 import { inter, playfair } from "@/lib/fonts";
 import "../globals.css";
@@ -47,8 +48,9 @@ export default async function LocaleLayout({
   // Enable static rendering for this locale
   setRequestLocale(locale);
 
-  // Load all messages for client components (NextIntlClientProvider)
-  const messages = await getMessages();
+  // Al cliente solo van los mensajes del storefront (se serializan en el HTML);
+  // el panel abre su propio proveedor con admin.* en (admin)/admin/layout.tsx.
+  const messages = pickMessages(await getMessages(), SITE_CLIENT_NAMESPACES);
 
   return (
     <html
