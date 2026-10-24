@@ -362,7 +362,7 @@
         },
         "bad_response": {
           "title": "BigBuy ha respondido algo inesperado",
-          "body": "La respuesta no tiene el formato esperado. Si se repite, avisa a Sergio."
+          "body": "La respuesta no tiene el formato esperado. Si se repite, avisa al equipo técnico."
         },
         "invalid_request": {
           "title": "La búsqueda no es válida",
@@ -375,7 +375,7 @@
       },
       "boundary": {
         "title": "Algo ha fallado al mostrar esta pantalla",
-        "body": "Puedes volver a intentarlo. Si el error se repite, avisa a Sergio.",
+        "body": "Puedes volver a intentarlo. Si el error se repite, avisa al equipo técnico.",
         "retry": "Reintentar"
       }
     }
@@ -433,18 +433,18 @@
   },
   "about": {
     "metaTitle": "Sobre nosotros · B&C: Concept",
-    "metaDescription": "Decoración de hogar escandinavo-mediterránea, seleccionada pieza a pieza por Yosra y Sergio.",
+    "metaDescription": "Decoración de hogar escandinavo-mediterránea, seleccionada pieza a pieza.",
     "title": "Sobre nosotros",
     "tagline": "El equilibrio entre visión y diseño.",
-    "intro": "B&C: Concept nace de la vida real, no de una oficina. Somos Yosra y Sergio, y creemos que tener un hogar que te represente no debería ser una tarea agotadora.",
+    "intro": "B&C: Concept nace de la vida real, no de una oficina. Creemos que tener un hogar que te represente no debería ser una tarea agotadora.",
     "valuesLabel": "Lo que nos guía",
     "curationTitle": "Curaduría con criterio",
-    "curationBody": "Yosra selecciona cada pieza con un criterio claro de calidad y precio justo. Preferimos una colección corta y pensada a un catálogo interminable.",
+    "curationBody": "Seleccionamos cada pieza con un criterio claro de calidad y precio justo. Preferimos una colección corta y pensada a un catálogo interminable.",
     "aestheticTitle": "Una estética serena",
     "aestheticBody": "Nos inspiran el diseño escandinavo y la luz del Mediterráneo: materiales honestos, tonos cálidos y piezas que acompañan sin imponerse.",
     "europeTitle": "Desde la Unión Europea",
     "europeBody": "Solo seleccionamos piezas que se envían desde almacenes situados en la Unión Europea.",
-    "closing": "Sergio construye la tienda para que comprar sea tan sencillo y tranquilo como las piezas que elegimos. Juntos unimos criterio y diseño para que encuentres tu estilo sin tener que buscarlo en todas partes.",
+    "closing": "Construimos la tienda para que comprar sea tan sencillo y tranquilo como las piezas que elegimos. Unimos criterio y diseño para que encuentres tu estilo sin tener que buscarlo en todas partes.",
     "cta": "Ver la colección"
   },
   "contact": {
@@ -478,7 +478,7 @@
       }
     },
     "storyTitle": "Un hogar que te represente",
-    "storyBody": "B&C: Concept nace de la vida real, no de una oficina. Somos Yosra y Sergio, y creemos que tener un hogar que te represente no debería ser una tarea agotadora.",
+    "storyBody": "B&C: Concept nace de la vida real, no de una oficina. Creemos que tener un hogar que te represente no debería ser una tarea agotadora.",
     "storyCta": "Conócenos",
     "storyAlt": "Salón mediterráneo con sofá de lino, mesa de centro de travertino, alfombra de yute y ramas de olivo junto a la chimenea."
   }
