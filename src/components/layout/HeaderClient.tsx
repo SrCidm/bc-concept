@@ -151,10 +151,10 @@ export function HeaderClient({
       ].join(" ")}
     >
       <div className="max-w-[1180px] mx-auto px-[clamp(1.25rem,4vw,2.5rem)] h-16 flex items-center justify-between gap-6">
-        {/* Logo */}
+        {/* Logo. Sin aria-label: el nombre accesible es el texto visible
+            "B&C: Concept" (WCAG 2.5.3, Label in Name). */}
         <Link
           href="/"
-          aria-label="B and C Concept"
           className="shrink-0 font-serif text-xl tracking-brand text-bc-text-primary hover:text-bc-accent transition-colors duration-200 ease-bc"
         >
           B<span className="font-sans">&amp;</span>C
