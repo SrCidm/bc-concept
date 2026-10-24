@@ -14,6 +14,8 @@ const nextConfig = {
     return [{ source: "/:path*", headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow" }] }];
   },
   images: {
+    // AVIF primero (más ligero), WebP de respaldo.
+    formats: ["image/avif", "image/webp"],
     // Hosts de imagen de proveedores (BigBuy principal, CJ secundario).
     // Sin comodines: añadir aquí cualquier host nuevo tras revisar los datos reales.
     remotePatterns: [

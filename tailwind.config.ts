@@ -57,6 +57,11 @@ const config: Config = {
           from: { opacity: "0" },
           to: { opacity: "1" },
         },
+        // Entrada del texto del hero: CSS (no espera a JS) para no retrasar el LCP.
+        "hero-rise": {
+          from: { opacity: "0", transform: "translateY(24px)" },
+          to: { opacity: "1", transform: "translateY(0)" },
+        },
         "menu-in": {
           from: { opacity: "0", transform: "translateY(-8px)" },
           to: { opacity: "1", transform: "translateY(0)" },
@@ -68,6 +73,7 @@ const config: Config = {
       },
       animation: {
         "page-in": "page-in 280ms cubic-bezier(.16,1,.3,1) both",
+        "hero-rise": "hero-rise 1100ms cubic-bezier(.16,1,.3,1) both",
         "menu-in": "menu-in 220ms cubic-bezier(.16,1,.3,1) both",
         "menu-out": "menu-out 140ms cubic-bezier(.16,1,.3,1) both",
       },

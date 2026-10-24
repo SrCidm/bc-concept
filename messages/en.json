@@ -112,5 +112,29 @@
     "unavailable": "Our contact email will be available here shortly.",
     "collectionPrompt": "In the meantime, you can keep exploring the collection.",
     "cta": "View the collection"
+  },
+  "home": {
+    "heroAlt": "Oak bench against a plaster wall in late-afternoon sun, with a clay vase of olive branches, a linen throw and a stone bowl.",
+    "categoriesTitle": "Explore the collection",
+    "categoriesIntro": "Lighting, textiles and decor, chosen with the same criteria.",
+    "categoriesView": "View",
+    "categories": {
+      "lighting": {
+        "name": "Lighting",
+        "alt": "Table lamp with a ceramic base and a lit linen shade on an oak chest of drawers, next to a small vase with an olive sprig."
+      },
+      "textiles": {
+        "name": "Textiles",
+        "alt": "Bed dressed in sage-green linen, an ecru waffle-knit cushion and a fringed herringbone throw."
+      },
+      "decor": {
+        "name": "Decor",
+        "alt": "Textured ceramic vases, a round wooden mirror, a candle and a stone bowl on a travertine shelf."
+      }
+    },
+    "storyTitle": "A home that feels like yours",
+    "storyBody": "B&C: Concept was born from real life, not from an office. We are Yosra and Sergio, and we believe that creating a home that feels like yours shouldn't be exhausting.",
+    "storyCta": "Get to know us",
+    "storyAlt": "Mediterranean living room with a linen sofa, a travertine coffee table, a jute rug and olive branches by the fireplace."
   }
 }

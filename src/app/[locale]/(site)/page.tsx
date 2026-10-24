@@ -1,13 +1,17 @@
 import { setRequestLocale } from "next-intl/server";
-import { Hero } from "@/components/Hero";
+import { HomeHero } from "@/components/home/HomeHero";
+import { HomeCategories } from "@/components/home/HomeCategories";
+import { HomeStory } from "@/components/home/HomeStory";
 
-export default async function HomePage({
-  params,
-}: {
-  params: { locale: string };
-}) {
-  const { locale } = params;
-  setRequestLocale(locale);
+/** Home (SSG): hero con dirección de arte, las tres familias y el bloque de marca. */
+export default async function HomePage({ params }: { params: { locale: string } }) {
+  setRequestLocale(params.locale);
 
-  return <Hero />;
+  return (
+    <>
+      <HomeHero />
+      <HomeCategories />
+      <HomeStory />
+    </>
+  );
 }

@@ -435,5 +435,29 @@
     "unavailable": "El email de contacto estará disponible aquí en breve.",
     "collectionPrompt": "Mientras tanto, puedes seguir descubriendo la colección.",
     "cta": "Ver la colección"
+  },
+  "home": {
+    "heroAlt": "Banco de roble junto a una pared de estuco bañada por el sol de la tarde, con un jarrón de barro con ramas de olivo, una manta de lino y un cuenco de piedra.",
+    "categoriesTitle": "Explora la colección",
+    "categoriesIntro": "Iluminación, textiles y decoración, elegidos con el mismo criterio.",
+    "categoriesView": "Ver",
+    "categories": {
+      "lighting": {
+        "name": "Iluminación",
+        "alt": "Lámpara de mesa con pie de cerámica y pantalla de lino encendida sobre una cómoda de roble, junto a un pequeño jarrón con una rama de olivo."
+      },
+      "textiles": {
+        "name": "Textiles",
+        "alt": "Cama con ropa de lino verde salvia, un cojín de punto gofre en tono crudo y una manta de espiga con flecos."
+      },
+      "decor": {
+        "name": "Decoración",
+        "alt": "Jarrones de cerámica texturizada, un espejo redondo de madera, una vela y un cuenco de piedra sobre un estante de travertino."
+      }
+    },
+    "storyTitle": "Un hogar que te represente",
+    "storyBody": "B&C: Concept nace de la vida real, no de una oficina. Somos Yosra y Sergio, y creemos que tener un hogar que te represente no debería ser una tarea agotadora.",
+    "storyCta": "Conócenos",
+    "storyAlt": "Salón mediterráneo con sofá de lino, mesa de centro de travertino, alfombra de yute y ramas de olivo junto a la chimenea."
   }
 }

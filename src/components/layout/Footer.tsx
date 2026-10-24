@@ -18,7 +18,7 @@ export async function Footer() {
     { label: t("all"), href: "/catalog" },
     { label: t("lighting"), href: { pathname: "/catalog", query: { cat: "lighting" } } },
     { label: t("textiles"), href: { pathname: "/catalog", query: { cat: "textiles" } } },
-    { label: t("deco"), href: { pathname: "/catalog", query: { cat: "deco" } } },
+    { label: t("deco"), href: { pathname: "/catalog", query: { cat: "decor" } } },
   ];
 
   const infoLinks: FooterLink[] = [

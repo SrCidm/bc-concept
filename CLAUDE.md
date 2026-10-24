@@ -13,6 +13,12 @@ Guía persistente para Claude Code. Tienda de **dropshipping de decoración de h
 - **Sobre nosotros: copy en BORRADOR pendiente de revisión** (Sergio + Yosra), sin años, cifras ni promesas. "Solo piezas enviadas desde almacenes en la UE" es correcto para el catálogo: la importación es fail-closed (solo entra almacén UE explícito); la deuda del filtro UE afecta solo al listado del panel.
 - **Contacto:** email desde `CONTACT_EMAIL` (servidor, leída en el build: cambiarla = redesplegar; validada en `lib/contact.ts`). Sin ella la página no muestra ningún email. Plazo: "Solemos responder en 1–2 días laborables". Sin formulario.
 
+## Storefront: home
+- `(site)/page.tsx` = `HomeHero` + `HomeCategories` + `HomeStory` (`src/components/home/`), Server Components; el único cliente es `HeroMotion` (GSAP: la foto "asienta" 1.06→1 y deriva con el scroll). El texto del hero entra con CSS (`animate-hero-rise`), no con JS, para no retrasar el LCP. Reduced-motion: nada se mueve. `next.config`: imágenes AVIF + WebP.
+- Imágenes en `public/images/{home,about}/` (JPG sRGB). **Importación estática** + `fill`/object-cover (o alto automático en `HomeStory`): el código **no depende del tamaño**; sustituir un archivo con el mismo nombre no exige cambios. Hero con dirección de arte: `<picture>` + `getImageProps` (16:9 desde `md`, 4:5 en móvil), `priority` (LCP).
+- Categorías enlazan a la colección con `?cat=lighting|textiles|decor` (valores de `STORE_CATEGORIES`). **La colección aún no filtra por `cat`.**
+- `hero-desktop.jpg`: 3344×1888, escalada y normalizada (<1 MB, mozjpeg q88, sRGB sin metadatos).
+
 ## Storefront: 404
 - `[locale]/(site)/[...rest]` lanza `notFound()` → `(site)/not-found.tsx` (marca, Header/Footer, ES/EN): **404 real + noindex**. En Next 14 el HTML inicial de un `notFound()` es un shell de error y la vista la pinta el cliente. `[locale]/layout` tiene `dynamicParams = false`: un primer segmento que no es locale (p. ej. `/x.txt`, no pasa por el middleware) va al 404 raíz `app/not-found.tsx` (layout raíz de paso), que Next 14 sirve sin CSS (lista legible).
 
