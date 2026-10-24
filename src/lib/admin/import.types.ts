@@ -6,17 +6,12 @@
  */
 
 /**
- * Categorías de tienda a elegir al importar. ÚNICO sitio de la lista cerrada:
- * la validación del servidor y el <select> del modal salen de aquí (cambiarla
- * es una línea). Valores = los del menú del footer; a validar con Yosra.
+ * Categorías de tienda a elegir al importar. La lista cerrada vive en
+ * `lib/catalog/categories.ts` (la comparte el filtro de la colección); aquí se
+ * reexporta para que el modal y la validación del servidor no cambien.
  * Las etiquetas viven en messages/es.json (`admin.import.dialog.categories.*`).
  */
-export const STORE_CATEGORIES = ["lighting", "textiles", "decor"] as const;
-export type StoreCategory = (typeof STORE_CATEGORIES)[number];
-
-export function isStoreCategory(v: unknown): v is StoreCategory {
-  return typeof v === "string" && (STORE_CATEGORIES as readonly string[]).includes(v);
-}
+export { STORE_CATEGORIES, isStoreCategory, type StoreCategory } from "@/lib/catalog/categories";
 
 /** Códigos de error (nunca mensajes del proveedor ni de la BD; regla #8). */
 export type ImportErrorCode =

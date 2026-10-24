@@ -13,10 +13,12 @@ Guía persistente para Claude Code. Tienda de **dropshipping de decoración de h
 - **Sobre nosotros: copy en BORRADOR pendiente de revisión** (Sergio + Yosra), sin años, cifras ni promesas. "Solo piezas enviadas desde almacenes en la UE" es correcto para el catálogo: la importación es fail-closed (solo entra almacén UE explícito); la deuda del filtro UE afecta solo al listado del panel.
 - **Contacto:** email desde `CONTACT_EMAIL` (servidor, leída en el build: cambiarla = redesplegar; validada en `lib/contact.ts`). Sin ella la página no muestra ningún email. Plazo: "Solemos responder en 1–2 días laborables". Sin formulario.
 
+- **Colección: `?q=&cat=&page=` combinables** (`lib/catalog/params.ts`, función pura con tests). `cat` validada contra `STORE_CATEGORIES` (lista única en `lib/catalog/categories.ts`; `lib/admin/import.types` la reexporta): desconocida = colección completa. Página inválida = 1. Filtro visible y quitable (`CategoryFilter`: píldoras, la activa con ×; "Todas"), `CatalogPagination` (24 por página, conserva q y cat). **Límite:** con `q`, filtro y paginación trabajan dentro de los 48 mejores resultados de la RPC `search_products_public` (LIMIT 48 en SQL); ampliarlo exige migración.
+
 ## Storefront: home
 - `(site)/page.tsx` = `HomeHero` + `HomeCategories` + `HomeStory` (`src/components/home/`), Server Components; el único cliente es `HeroMotion` (GSAP: la foto "asienta" 1.06→1 y deriva con el scroll). El texto del hero entra con CSS (`animate-hero-rise`), no con JS, para no retrasar el LCP. Reduced-motion: nada se mueve. `next.config`: imágenes AVIF + WebP.
 - Imágenes en `public/images/{home,about}/` (JPG sRGB). **Importación estática** + `fill`/object-cover (o alto automático en `HomeStory`): el código **no depende del tamaño**; sustituir un archivo con el mismo nombre no exige cambios. Hero con dirección de arte: `<picture>` + `getImageProps` (16:9 desde `md`, 4:5 en móvil), `priority` (LCP).
-- Categorías enlazan a la colección con `?cat=lighting|textiles|decor` (valores de `STORE_CATEGORIES`). **La colección aún no filtra por `cat`.**
+- Categorías enlazan a la colección con `?cat=lighting|textiles|decor` (valores de `STORE_CATEGORIES`).
 - `hero-desktop.jpg`: 3344×1888, escalada y normalizada (<1 MB, mozjpeg q88, sRGB sin metadatos).
 
 ## Storefront: 404

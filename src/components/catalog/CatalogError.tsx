@@ -1,11 +1,12 @@
 import { getTranslations } from "next-intl/server";
 import { Link, type AppHref } from "@/i18n/navigation";
 import { Reveal } from "@/components/motion/Reveal";
+import { catalogQuery, type CatalogParams } from "@/lib/catalog/params";
 
-/** Generic error: never exposes internal details (regla #8). */
-export async function CatalogError({ query }: { query: string }) {
+/** Generic error: never exposes internal details (regla #8). Reintenta la misma vista (q, cat, page). */
+export async function CatalogError({ params }: { params: CatalogParams }) {
   const t = await getTranslations("catalog");
-  const href: AppHref = query ? { pathname: "/catalog", query: { q: query } } : "/catalog";
+  const href: AppHref = { pathname: "/catalog", query: catalogQuery(params) };
 
   return (
     <Reveal className="py-4 md:py-8 max-w-prose" variant="fade">

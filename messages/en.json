@@ -33,7 +33,29 @@
     "clearSearch": "View the whole collection",
     "errorTitle": "We couldn't load the collection",
     "errorBody": "A temporary problem occurred. Please try again in a moment.",
-    "retry": "Try again"
+    "retry": "Try again",
+    "filterLabel": "Filter by category",
+    "all": "All",
+    "categories": {
+      "lighting": "Lighting",
+      "textiles": "Textiles",
+      "decor": "Decor"
+    },
+    "removeFilter": "Remove filter: {name}",
+    "resultsForIn": "Results for “{query}” in {category}",
+    "categoryEmptyTitle": "No pieces in {category} yet",
+    "categoryEmptyBody": "We're preparing this part of the collection. Check back in a few days.",
+    "noResultsInTitle": "No results for “{query}” in {category}",
+    "searchEverywhere": "Search the whole collection",
+    "pageEmptyTitle": "This page is empty",
+    "pageEmptyBody": "There are no more pieces from here on.",
+    "firstPage": "Back to the first page",
+    "pagination": {
+      "label": "Pagination",
+      "previous": "Previous",
+      "next": "Next",
+      "status": "Page {page} of {total}"
+    }
   },
   "siteRibbon": {
     "label": "Administration session",

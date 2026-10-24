@@ -33,7 +33,29 @@
     "clearSearch": "Ver toda la colección",
     "errorTitle": "No hemos podido cargar la colección",
     "errorBody": "Ha ocurrido un problema temporal. Inténtalo de nuevo en unos instantes.",
-    "retry": "Reintentar"
+    "retry": "Reintentar",
+    "filterLabel": "Filtrar por categoría",
+    "all": "Todas",
+    "categories": {
+      "lighting": "Iluminación",
+      "textiles": "Textiles",
+      "decor": "Decoración"
+    },
+    "removeFilter": "Quitar filtro: {name}",
+    "resultsForIn": "Resultados para «{query}» en {category}",
+    "categoryEmptyTitle": "Aún no hay piezas en {category}",
+    "categoryEmptyBody": "Estamos preparando esta parte de la colección. Vuelve en unos días.",
+    "noResultsInTitle": "Sin resultados para «{query}» en {category}",
+    "searchEverywhere": "Buscar en toda la colección",
+    "pageEmptyTitle": "Esta página está vacía",
+    "pageEmptyBody": "No hay más piezas a partir de aquí.",
+    "firstPage": "Volver a la primera página",
+    "pagination": {
+      "label": "Paginación",
+      "previous": "Anterior",
+      "next": "Siguiente",
+      "status": "Página {page} de {total}"
+    }
   },
   "admin": {
     "login": {

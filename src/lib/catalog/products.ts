@@ -1,16 +1,19 @@
 import { createClient } from "@/lib/supabase/server";
 import type { ProductPublic, ProductPublicRow } from "@/types/product";
+import { PAGE_SIZE, type CatalogParams } from "./params";
 
 /** Lista explícita: nunca `select("*")` (regla #1). */
 const PUBLIC_COLUMNS =
   "id, slug, title, description, price_retail, currency, images, category, inventory, warehouse, delivery_min_days, delivery_max_days, created_at";
 
-const PAGE_SIZE = 24;
-export const MAX_QUERY_LENGTH = 80;
+/** Tope de la RPC de búsqueda (LIMIT 48 en SQL): q + cat + página trabajan dentro de él. */
+const SEARCH_MAX_ROWS = 48;
 
 export type CatalogResult =
-  | { ok: true; products: ProductPublic[] }
+  | { ok: true; products: ProductPublic[]; page: number; totalPages: number; total: number }
   | { ok: false };
+
+type Client = ReturnType<typeof createClient>;
 
 function parseImages(value: unknown): string[] {
   if (!Array.isArray(value)) return [];
@@ -37,41 +40,45 @@ function toProduct(row: ProductPublicRow): ProductPublic {
   };
 }
 
-export function normalizeQuery(raw: string | string[] | undefined): string {
-  const value = Array.isArray(raw) ? raw[0] : raw;
-  return (value ?? "").trim().slice(0, MAX_QUERY_LENGTH);
-}
-
 /**
- * Catálogo público. Server-only. Con `q` usa la RPC (pg_trgm + unaccent);
- * sin `q` lee la vista `products_public`. Errores internos no se propagan (regla #8).
+ * Catálogo público. Server-only. Con `q` usa la RPC (pg_trgm + unaccent; como
+ * mucho los 48 mejores resultados); sin `q` lee la vista `products_public`.
+ * `cat` (ya validada) filtra por categoría y `page` pagina de PAGE_SIZE en
+ * PAGE_SIZE, ambas sobre la misma consulta. Errores internos no se propagan
+ * (regla #8). `deps.client` permite testear sin red.
  */
-export async function getCatalogProducts(q: string): Promise<CatalogResult> {
+export async function getCatalogProducts(
+  { q, cat, page }: CatalogParams,
+  deps: { client?: () => Client } = {},
+): Promise<CatalogResult> {
   try {
-    const supabase = createClient();
+    const supabase = (deps.client ?? createClient)();
+    const from = (page - 1) * PAGE_SIZE;
+    const to = from + PAGE_SIZE - 1;
 
-    if (q.length > 0) {
-      const { data, error } = await supabase
-        .rpc("search_products_public", { q, max_rows: PAGE_SIZE });
-      if (error) {
-        console.error("[catalog] search failed:", error.code);
-        return { ok: false };
-      }
-      const rows = (data ?? []) as ProductPublicRow[];
-      return { ok: true, products: rows.map(toProduct) };
-    }
+    const base =
+      q.length > 0
+        ? supabase.rpc("search_products_public", { q, max_rows: SEARCH_MAX_ROWS }, { count: "exact" })
+        : supabase.from("products_public").select(PUBLIC_COLUMNS, { count: "exact" }).order("created_at", { ascending: false });
+    const filtered = cat ? base.eq("category", cat) : base;
+    const { data, error, count } = await filtered.range(from, to);
+    // La vista y la RPC devuelven filas de products_public (columnas públicas).
+    const rows = (data ?? []) as unknown as ProductPublicRow[];
 
-    const { data, error } = await supabase
-      .from("products_public")
-      .select(PUBLIC_COLUMNS)
-      .order("created_at", { ascending: false })
-      .limit(PAGE_SIZE)
-      .returns<ProductPublicRow[]>();
     if (error) {
-      console.error("[catalog] list failed:", error.code);
+      // Página fuera de rango: PostgREST responde 416 (PGRST103). No es un fallo.
+      if (error.code === "PGRST103") return { ok: true, products: [], page, totalPages: 0, total: 0 };
+      console.error(q ? "[catalog] search failed:" : "[catalog] list failed:", error.code);
       return { ok: false };
     }
-    return { ok: true, products: (data ?? []).map(toProduct) };
+    const total = count ?? rows.length;
+    return {
+      ok: true,
+      products: rows.map(toProduct),
+      page,
+      total,
+      totalPages: Math.ceil(total / PAGE_SIZE),
+    };
   } catch {
     console.error("[catalog] unexpected failure");
     return { ok: false };
