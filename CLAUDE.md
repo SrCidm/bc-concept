@@ -93,6 +93,8 @@ Guía persistente para Claude Code. Tienda de **dropshipping de decoración de h
 - **Filtro UE fail-closed** (crítico): hoy `isEuWarehouse(null)` asume UE. Al validar contra el sandbox de BigBuy (cuando llegue `BIGBUY_API_KEY`) debe pasar a "almacén desconocido = NO elegible UE" (excluir o marcar). Ver TODO en `src/lib/suppliers/bigbuy/warehouses.ts`.
 - **Categoría y publicación (Fase 3.4):** la categoría es OBLIGATORIA para publicar (`draft→active`); en `draft` puede quedar sin categoría (el modal de importación la deja opcional). La acción de publicar debe rechazar `category` nulo.
 - Valorar cifrar también `api_key` (Supabase Vault) junto con los tokens.
+- **Índice curado de CJ en BD (mejora pendiente):** hoy cada instancia de Vercel lo reconstruye en memoria (~24 s en frío y, con varias instancias a la vez, riesgo de `1600200`/429). Persistirlo en una tabla solo para service_role (sin grants a anon/authenticated) y refrescarlo con un cron diario de Vercel; el listado lee de la tabla.
+- **La cuadrícula calcula un margen que no muestra:** `toAdminPageDTO` (`lib/suppliers/dto.ts`) deriva margen con el envío medio para cada tarjeta y `ImportCard` no lo pinta. Quitar ese cálculo (y su campo del DTO) o mostrarlo; el margen válido es el del modal.
 
 ## Economía unitaria
 Antes de catalogar: `precio_venta − IVA(21%) − coste − envío − comisión Stripe − colchón devoluciones = margen neto`. Objetivo neto 15-35%. Si no deja margen, no entra.
