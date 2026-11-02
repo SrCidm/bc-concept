@@ -1,0 +1,118 @@
+{
+  "code": 200,
+  "result": true,
+  "message": "Success",
+  "data": {
+    "pid": "2116002325246046209",
+    "productName": "[\"Vase\",\"Acrylic\",\"Cylindrical\"]",
+    "productNameSet": [
+      "Vase",
+      "Cylindrical",
+      "Acrylic"
+    ],
+    "productNameEn": "Vase Acrylic Cylindrical Base Wood 12x12x30cm",
+    "productSku": "CJFU3536658",
+    "bigImage": "https://cf.cjdropshipping.com/17933184/9b1892dc-0af9-499f-89ec-13f37d54a668.jpg",
+    "productImage": "[\"https://cf.cjdropshipping.com/17933184/9b1892dc-0af9-499f-89ec-13f37d54a668.jpg\",\"https://cf.cjdropshipping.com/17933184/1ee19a41-9b0a-493e-a03c-c835b7fd51a6.jpg\",\"https://cf.cjdropshipping.com/17933184/90f0024d-94f2-40f8-9e86-5003bcaf90db.jpg\",\"https://cf.cjdropshipping.com/17933184/12ce4236-04a7-4c43-b186-7ff1fcc24cdc.jpg\",\"https://cf.cjdropshipping.com/17933184/0949f65a-43b0-4927-9ece-58fe847298cb.jpg\"]",
+    "productImageSet": [
+      "https://cf.cjdropshipping.com/17933184/12ce4236-04a7-4c43-b186-7ff1fcc24cdc.jpg",
+      "https://cf.cjdropshipping.com/17933184/90f0024d-94f2-40f8-9e86-5003bcaf90db.jpg",
+      "https://cf.cjdropshipping.com/17933184/9b1892dc-0af9-499f-89ec-13f37d54a668.jpg"
+    ],
+    "productWeight": "510",
+    "productUnit": null,
+    "productType": "SUPPLIER_SHIPPED_PRODUCT",
+    "categoryId": "2410301014451618100",
+    "categoryName": "Home, Garden & Furniture / Home Storage / Furniture",
+    "entryCode": "3926400000",
+    "entryName": "花瓶",
+    "entryNameEn": "Vase",
+    "materialName": "[\"塑料\",\"木头\"]",
+    "materialNameSet": [
+      "木头",
+      "塑料"
+    ],
+    "materialNameEn": "[\"Plastic\",\"Wood\"]",
+    "materialNameEnSet": [
+      "Wood",
+      "Plastic"
+    ],
+    "materialKey": "[\"PLASTIC\",\"WOOD\"]",
+    "materialKeySet": [
+      "WOOD",
+      "PLASTIC"
+    ],
+    "packingWeight": "510",
+    "packingName": "[\"纸盒\"]",
+    "packingNameSet": [
+      "纸盒"
+    ],
+    "packingNameEn": "[\"Carton\"]",
+    "packingNameEnSet": [
+      "Carton"
+    ],
+    "packingKey": "[\"PAPER_BOX\"]",
+    "packingKeySet": [
+      "PAPER_BOX"
+    ],
+    "productKey": "[\"Color\"]",
+    "productKeySet": [
+      "Color"
+    ],
+    "productKeyEn": "Color",
+    "productKeyEnSet": [
+      "Color"
+    ],
+    "productPro": "[\"普货\"]",
+    "productProSet": [
+      "普货"
+    ],
+    "productProEn": "[\"COMMON\"]",
+    "productProEnSet": [
+      "COMMON"
+    ],
+    "sellPrice": "10.43",
+    "sourceFrom": 0,
+    "description": "\n <p><em>Vase Acrylic Cylindrical Base Wood 12x12x30cm</em><br></p>\n <img src=\"https://cf.cjdropshipping.com/17933184/0949f65a-43b0-4927-9ece-58fe847298cb.jpg\" style=\"max-width:100%;\" contenteditable=\"false\">\n <br>\n <img src=\"https://cf.cjdropshipping.com/17933184/9b1892dc-0af9-499f-89ec-13f37d54a668.jpg\" style=\"max-width:100%;\" contenteditable=\"false\">\n <br>\n <img src=\"https://cf.cjdropshipping.com/17933184/1ee19a41-9b0a-493e-a03c-c835b7fd51a6.jpg\" style=\"max-width:100%;\" contenteditable=\"false\">\n <br>\n <img src=\"https://cf.cjdropshipping.com/17933184/90f0024d-94f2-40f8-9e86-5003bcaf90db.jpg\" style=\"max-width:100%;\" contenteditable=\"false\">\n <br>\n <img src=\"https://cf.cjdropshipping.com/17933184/12ce4236-04a7-4c43-b186-7ff1fcc24cdc.jpg\" style=\"max-width:100%;\" contenteditable=\"false\">\n <br>\n <img src=\"https://cf.cjdropshipping.com/17933184/0949f65a-43b0-4927-9ece-58fe847298cb.jpg\" style=\"max-width:100%;\" contenteditable=\"false\">\n <br>\n <p></p>\n",
+    "variants": [
+      {
+        "vid": "2116002325489315842",
+        "pid": "2116002325246046209",
+        "variantName": null,
+        "variantNameEn": "",
+        "variantImage": "https://cf.cjdropshipping.com/17933184/9b1892dc-0af9-499f-89ec-13f37d54a668.jpg",
+        "variantSku": "CJFU35366580001",
+        "barcode": "8600001690915",
+        "variantUnit": null,
+        "variantProperty": null,
+        "variantKey": "Default",
+        "variantLength": 120,
+        "variantWidth": 120,
+        "variantHeight": 300,
+        "variantVolume": 4320000,
+        "variantWeight": 510,
+        "variantSellPrice": 10.43,
+        "createTime": 1793329242000,
+        "variantStandard": "long=120,width=120,height=300",
+        "variantSugSellPrice": 35.78,
+        "combineNum": null,
+        "inventoryNum": null,
+        "combineVariants": null,
+        "inventories": null
+      }
+    ],
+    "addMarkStatus": 0,
+    "createrTime": "2026-10-30T00:00:00+08:00",
+    "productVideo": null,
+    "status": "3",
+    "suggestSellPrice": "35.78",
+    "listedNum": 0,
+    "customizationVersion": null,
+    "customizationJson1": null,
+    "customizationJson2": null,
+    "customizationJson3": null,
+    "customizationJson4": null,
+    "isTestProduct": false
+  },
+  "success": true
+}

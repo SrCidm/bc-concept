@@ -1,0 +1,52 @@
+{
+  "success": true,
+  "code": 0,
+  "message": null,
+  "data": [
+    {
+      "areaCn": null,
+      "areaEn": null,
+      "areaId": 2,
+      "countryCode": "US",
+      "nameEn": null,
+      "valueEn": null,
+      "disabled": null,
+      "de": "Vereinigte Staaten von Amerika",
+      "zh": "美国",
+      "id": "Amerika Serikat",
+      "fr": "les états-unis d'Amérique",
+      "th": "สหรัฐอเมริกา",
+      "en": "United States"
+    },
+    {
+      "areaCn": null,
+      "areaEn": null,
+      "areaId": 1,
+      "countryCode": "CN",
+      "nameEn": null,
+      "valueEn": null,
+      "disabled": null,
+      "de": "China",
+      "zh": "中国",
+      "id": "Cina",
+      "fr": "Chine",
+      "th": "จีน",
+      "en": "China"
+    },
+    {
+      "areaCn": null,
+      "areaEn": null,
+      "areaId": 12,
+      "countryCode": "MX",
+      "nameEn": null,
+      "valueEn": null,
+      "disabled": null,
+      "de": "Mexiko",
+      "zh": "墨西哥",
+      "id": "Meksiko",
+      "fr": "Mexique",
+      "th": "เม็กซิโก",
+      "en": "Mexico"
+    }
+  ]
+}

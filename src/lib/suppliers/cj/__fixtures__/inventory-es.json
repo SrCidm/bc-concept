@@ -1,0 +1,46 @@
+{
+  "success": true,
+  "code": 200,
+  "message": "",
+  "data": {
+    "inventories": [
+      {
+        "areaEn": "Spain Warehouse",
+        "areaId": 31,
+        "countryCode": "ES",
+        "totalInventoryNum": 100,
+        "cjInventoryNum": 100,
+        "factoryInventoryNum": 0,
+        "countryNameEn": "Spain Warehouse",
+        "stock": [
+          {
+            "stockId": "2113175834973937665",
+            "inventory": 100,
+            "factoryInventory": 0
+          }
+        ]
+      }
+    ],
+    "variantInventories": [
+      {
+        "vid": "2116002325489315842",
+        "inventory": [
+          {
+            "countryCode": "ES",
+            "totalInventory": 100,
+            "cjInventory": 100,
+            "factoryInventory": 0,
+            "verifiedWarehouse": 1,
+            "stock": [
+              {
+                "stockId": "2113175834973937665",
+                "inventory": 100,
+                "factoryInventory": 0
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}
