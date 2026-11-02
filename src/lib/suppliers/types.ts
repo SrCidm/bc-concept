@@ -53,10 +53,18 @@ export interface SupplierProduct {
     /** Solo almacenes UE (ver warehouses.ts). */
     eu: WarehouseStock[];
     euTotal: number;
+    /**
+     * false = el listado del proveedor garantiza stock en ese almacén pero no da
+     * la cantidad (CJ): las cifras son 0 y la real se obtiene con `getProduct`.
+     * Ausente = cifras exactas.
+     */
+    exact?: boolean;
   };
   /** Días de manipulación del proveedor (no incluye transporte). */
   delivery: { minDays: number | null; maxDays: number | null };
   variants: SupplierVariant[];
+  /** De quién viene el artículo, para auditar (INTERNO, nunca al storefront). */
+  origin?: { productType: string | null; sellerId: string | null; sellerName: string | null };
 }
 
 export interface ListProductsParams {
@@ -67,7 +75,7 @@ export interface ListProductsParams {
   category?: string;
   query?: string;
   lang?: "es" | "en";
-  /** Por defecto true: solo productos con stock en almacén UE. */
+  /** Por defecto true: solo productos con stock en almacén UE (CJ lo aplica siempre). */
   euOnly?: boolean;
   /** Por defecto true: descarta productos sin stock. */
   inStockOnly?: boolean;

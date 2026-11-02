@@ -75,8 +75,8 @@ export function createMockBigBuyAdapter(env: Env = process.env): SupplierAdapter
 let bigbuy: { adapter: SupplierAdapter; mode: string } | null = null;
 
 /**
- * Proveedor → adaptador. CJ está pendiente de migrar a esta interfaz (hoy vive
- * en `src/lib/cj/` con el proveedor cableado): responde 501, sin tocar nada.
+ * Proveedor → adaptador. CJ ya tiene adaptador (`./cj`); se cablea aquí junto
+ * con el selector del panel. Hasta entonces responde 501, sin tocar nada.
  */
 export function getSupplierAdapter(id: SupplierId): SupplierAdapter {
   if (id === "bigbuy") {

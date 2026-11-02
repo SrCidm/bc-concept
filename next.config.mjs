@@ -21,6 +21,7 @@ const nextConfig = {
     remotePatterns: [
       { protocol: "https", hostname: "cdn.bigbuy.eu" },
       { protocol: "https", hostname: "cf.cjdropshipping.com" },
+      { protocol: "https", hostname: "oss-cf.cjdropshipping.com" },
     ],
   },
 };

@@ -18,8 +18,6 @@ const COST_MODULES = [
   "@/lib/pricing",
   "@/lib/api/admin",
   "@/lib/auth/requireAdmin",
-  "@/types/cj.types",
-  "@/lib/cj",
 ];
 
 function walk(dir: string, out: string[] = []): string[] {
@@ -60,7 +58,6 @@ const ALLOWED = (rel: string) =>
   rel.startsWith("lib/pricing/") ||
   rel.startsWith("lib/api/") ||
   rel.startsWith("lib/auth/") ||
-  rel.startsWith("lib/cj/") ||
   rel.startsWith("types/");
 
 describe("fronteras de la regla #1 (coste solo en superficies admin)", () => {

@@ -47,56 +47,118 @@ async function admin() {
   return supabaseAdmin;
 }
 
-export const supabaseCredentialStore: CredentialStore = {
-  async get(supplier) {
-    const db = await admin();
-    const { data, error } = await db
-      .from("supplier_credentials")
-      .select("api_key, updated_at")
-      .eq("supplier", supplier)
-      .maybeSingle();
-    if (error) {
-      // Solo el código: el mensaje de PostgREST puede incluir detalles internos.
-      console.error("[suppliers] credential read failed:", error.code);
-      throw new Error("credential_store_unavailable");
-    }
-    if (!data) return null;
-    return { apiKey: (data.api_key as string | null) ?? null, updatedAt: (data.updated_at as string | null) ?? null };
-  },
+/** Cliente de Supabase que usa el almacén (inyectable en tests). */
+type Db = Awaited<ReturnType<typeof admin>>;
 
-  async setApiKey(supplier, apiKey) {
-    const db = await admin();
-    const { data, error } = await db
-      .from("supplier_credentials")
-      .upsert({ supplier, api_key: apiKey }, { onConflict: "supplier" })
-      .select("updated_at")
-      .single();
-    if (error) {
-      console.error("[suppliers] credential write failed:", error.code);
-      throw new Error("credential_store_unavailable");
-    }
-    return { updatedAt: data.updated_at as string };
-  },
-
-  async delete(supplier) {
-    const db = await admin();
-    // Quita la key; si la fila no guarda tokens de otro tipo, se borra entera.
-    const { error } = await db
-      .from("supplier_credentials")
-      .update({ api_key: null })
-      .eq("supplier", supplier);
-    if (error) {
-      console.error("[suppliers] credential delete failed:", error.code);
-      throw new Error("credential_store_unavailable");
-    }
-    await db
-      .from("supplier_credentials")
-      .delete()
-      .eq("supplier", supplier)
-      .is("access_token", null)
-      .is("refresh_token", null);
-  },
+const NO_TOKENS = {
+  access_token: null,
+  refresh_token: null,
+  access_token_expiry: null,
+  refresh_token_expiry: null,
 };
+
+export function createSupabaseCredentialStore(getDb: () => Promise<Db>): CredentialStore {
+  return {
+    async get(supplier) {
+      const db = await getDb();
+      const { data, error } = await db
+        .from("supplier_credentials")
+        .select("api_key, updated_at")
+        .eq("supplier", supplier)
+        .maybeSingle();
+      if (error) {
+        // Solo el código: el mensaje de PostgREST puede incluir detalles internos.
+        console.error("[suppliers] credential read failed:", error.code);
+        throw new Error("credential_store_unavailable");
+      }
+      if (!data) return null;
+      return { apiKey: (data.api_key as string | null) ?? null, updatedAt: (data.updated_at as string | null) ?? null };
+    },
+
+    async setApiKey(supplier, apiKey) {
+      const db = await getDb();
+      // Rotar la key invalida los tokens derivados de la anterior.
+      const { data, error } = await db
+        .from("supplier_credentials")
+        .upsert({ supplier, api_key: apiKey, ...NO_TOKENS }, { onConflict: "supplier" })
+        .select("updated_at")
+        .single();
+      if (error) {
+        console.error("[suppliers] credential write failed:", error.code);
+        throw new Error("credential_store_unavailable");
+      }
+      return { updatedAt: data.updated_at as string };
+    },
+
+    async delete(supplier) {
+      const db = await getDb();
+      // Borrar la key borra también sus tokens: no pueden seguir vivos sin ella.
+      const { error } = await db.from("supplier_credentials").delete().eq("supplier", supplier);
+      if (error) {
+        console.error("[suppliers] credential delete failed:", error.code);
+        throw new Error("credential_store_unavailable");
+      }
+    },
+  };
+}
+
+export const supabaseCredentialStore: CredentialStore = createSupabaseCredentialStore(admin);
+
+/** Tokens de sesión de un proveedor (CJ). Nunca salen del servidor ni van a logs. */
+export interface SupplierTokens {
+  accessToken: string;
+  /** ISO 8601. null = el proveedor no informó. */
+  accessTokenExpiry: string | null;
+  refreshToken: string | null;
+  refreshTokenExpiry: string | null;
+}
+
+export interface TokenStore {
+  load(): Promise<SupplierTokens | null>;
+  save(tokens: SupplierTokens): Promise<void>;
+}
+
+export function createSupabaseTokenStore(supplier: SupplierId, getDb: () => Promise<Db> = admin): TokenStore {
+  return {
+    async load() {
+      const db = await getDb();
+      const { data, error } = await db
+        .from("supplier_credentials")
+        .select("access_token, refresh_token, access_token_expiry, refresh_token_expiry")
+        .eq("supplier", supplier)
+        .maybeSingle();
+      if (error) {
+        console.error("[suppliers] token read failed:", error.code);
+        throw new Error("credential_store_unavailable");
+      }
+      if (!data?.access_token) return null;
+      return {
+        accessToken: data.access_token as string,
+        accessTokenExpiry: (data.access_token_expiry as string | null) ?? null,
+        refreshToken: (data.refresh_token as string | null) ?? null,
+        refreshTokenExpiry: (data.refresh_token_expiry as string | null) ?? null,
+      };
+    },
+
+    async save(tokens) {
+      const db = await getDb();
+      const { error } = await db.from("supplier_credentials").upsert(
+        {
+          supplier,
+          access_token: tokens.accessToken,
+          refresh_token: tokens.refreshToken,
+          access_token_expiry: tokens.accessTokenExpiry,
+          refresh_token_expiry: tokens.refreshTokenExpiry,
+        },
+        { onConflict: "supplier" },
+      );
+      if (error) {
+        console.error("[suppliers] token write failed:", error.code);
+        throw new Error("credential_store_unavailable");
+      }
+    },
+  };
+}
 
 /**
  * La key de BD GANA sobre la del entorno: así se puede rotar desde el panel sin

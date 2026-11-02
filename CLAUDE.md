@@ -66,18 +66,29 @@ Guía persistente para Claude Code. Tienda de **dropshipping de decoración de h
 7. **Secretos** (`SUPABASE_SERVICE_ROLE_KEY`, claves Stripe/proveedor) solo en env del servidor; nunca en el bundle ni en logs.
 8. El cliente nunca ve errores internos ("tu pedido está siendo procesado").
 
+## Bloqueantes (CJ como proveedor principal)
+**De lanzamiento (no se abre la tienda sin resolverlos):**
+- **IVA y facturas con CJ:** pendiente del gestor. La API no dice si `sellPrice` incluye IVA ni ofrece facturas, y el vendedor del stock ES es una empresa de Hong Kong (¿quién vende y quién factura?).
+- **Devoluciones:** la API de CJ no da dirección ni proceso de devolución (solo disputas: reembolso o reenvío), y el pie promete "Devoluciones (14 días)". Hay que definir dirección y proceso.
+
+**Del hito de pedidos:** cifrar los tokens de `supplier_credentials` (Supabase Vault) ANTES de activar `createOrder`.
+
+**De la Fase 3.4b (publicar `draft→active`):** publicar exige "verificado con muestra" (campo en `products`, lo marca un admin). Sin muestra verificada no se publica.
+
+**Riesgo por confirmar:** la documentación de puntos de CJ dice que 30 días seguidos sin transacciones revocan el acceso a la API (`1600014`). Con la tienda sin lanzar podría afectarnos; lo confirma Sergio con el soporte de CJ.
+
 ## Deuda anotada (Hito 3)
 - **Filtro UE fail-closed** (crítico): hoy `isEuWarehouse(null)` asume UE. Al validar contra el sandbox de BigBuy (cuando llegue `BIGBUY_API_KEY`) debe pasar a "almacén desconocido = NO elegible UE" (excluir o marcar). Ver TODO en `src/lib/suppliers/bigbuy/warehouses.ts`.
 - **Envío por producto (Fase 3.4):** el coste de envío vendrá **por producto** de BigBuy (override de `computeMargin`); el de `/admin/ajustes` queda como respaldo. Ver TODO en `src/lib/pricing/margin.ts`.
 - **Categoría y publicación (Fase 3.4):** la categoría es OBLIGATORIA para publicar (`draft→active`); en `draft` puede quedar sin categoría (el modal de importación la deja opcional). La acción de publicar debe rechazar `category` nulo.
-- Migrar CJ (`src/lib/cj/`) a `lib/suppliers/cj/` con la interfaz común; valorar cifrado de `api_key` (Supabase Vault) antes de producción.
+- Valorar cifrar también `api_key` (Supabase Vault) junto con los tokens.
 
 ## Economía unitaria
 Antes de catalogar: `precio_venta − IVA(21%) − coste − envío − comisión Stripe − colchón devoluciones = margen neto`. Objetivo neto 15-35%. Si no deja margen, no entra.
 
 ## Contexto ampliado (leer bajo demanda, no cargar entero)
 - Instrucciones completas y decisiones: `docs/` (PRD, TRD, UI/UX, AppFlow, Backend-Schema, Implementation-Plan, Investigacion-Mercado-Competencia).
-- Proveedores: `src/lib/suppliers/<nombre>/` con la interfaz común (`auth`, `listProducts`, `getProduct`). BigBuy ✓; CJ (`src/lib/cj/`) pendiente de migrar. Las respuestas de BigBuy están **sin validar en vivo** hasta tener `BIGBUY_API_KEY` (ver `src/lib/suppliers/bigbuy/endpoints.ts`).
+- Proveedores: `src/lib/suppliers/<nombre>/` con la interfaz común (`auth`, `listProducts`, `getProduct`). BigBuy ✓ (aparcado); CJ ✓ en `lib/suppliers/cj/` (respuestas reales en `__fixtures__/`, se regeneran con `scripts/cj-discover.ts`). Las respuestas de BigBuy están **sin validar en vivo** hasta tener `BIGBUY_API_KEY` (ver `src/lib/suppliers/bigbuy/endpoints.ts`).
 - Esquema BD canónico: `supabase/schema.sql` · migración: `supabase/migration_v1_to_v2.sql`.
 
 ## Skills (se auto-invocan por su descripción)
