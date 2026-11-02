@@ -51,6 +51,23 @@ describe("?supplier= en /admin/import", () => {
     expect(importQueryString(r.ui)).toBe("");
   });
 
+  test("CJ filtra por categorías curadas por defecto; curated=0 lo quita", () => {
+    const on = parseImportParams({ q: "lamp" });
+    const off = parseImportParams({ q: "lamp", curated: ["0", "1", "0"] });
+    if (!on.ok || !off.ok) throw new Error("no ok");
+    expect(on.query.curatedOnly).toBe(true);
+    expect(off.query.curatedOnly).toBe(false);
+    expect(importQueryString(on.ui)).toBe("q=lamp");
+    expect(importQueryString(off.ui)).toBe("q=lamp&curated=0");
+  });
+
+  test("BigBuy no tiene filtro de categorías", () => {
+    const r = parseImportParams({ supplier: "bigbuy", curated: "0" });
+    if (!r.ok) throw new Error("no ok");
+    expect(r.ui.curated).toBe(true);
+    expect(importQueryString(r.ui)).toBe("supplier=bigbuy");
+  });
+
   test("BigBuy mantiene sus filtros", () => {
     const r = parseImportParams({ supplier: "bigbuy", eu: "0" });
     if (!r.ok) throw new Error("no ok");
@@ -100,6 +117,19 @@ describe("tiempo máximo en Vercel", () => {
       expect(readFileSync(join(SRC, file), "utf8")).toMatch(/export const maxDuration = 60;/);
     });
   }
+});
+
+describe("pie del desglose de margen", () => {
+  test("dice de dónde sale el envío: flete real o media de ajustes", () => {
+    const es = JSON.parse(readFileSync(join(import.meta.dir, "../../../messages/es.json"), "utf8"));
+    const m = es.admin.import.dialog.margin;
+    expect(m.note).toBeUndefined();
+    expect(m.noteRoute).toContain("flete real");
+    expect(m.noteRoute).not.toContain("media");
+    expect(m.noteAverage).toContain("media de los ajustes");
+    const dialog = readFileSync(join(import.meta.dir, "../../components/admin/import/ImportDialog.tsx"), "utf8");
+    expect(dialog).toContain('preview.shipping ? "margin.noteRoute" : "margin.noteAverage"');
+  });
 });
 
 describe("mensajes del panel", () => {

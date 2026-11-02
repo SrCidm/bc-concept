@@ -206,7 +206,8 @@
         "filtersLabel": "Filtros",
         "euOnly": "Solo almacén UE",
         "inStockOnly": "Solo con stock",
-        "placeholderEnglish": "Nombre en inglés: vase, lamp, cushion…"
+        "placeholderEnglish": "Nombre en inglés: vase, lamp, cushion…",
+        "curatedOnly": "Solo hogar, decoración, iluminación y textiles"
       },
       "mock": {
         "title": "Datos de ejemplo",
@@ -245,8 +246,8 @@
         "searchBody": "Ningún producto de esta página contiene «{q}». Prueba otra palabra, quita filtros o pasa a la página siguiente.",
         "clear": "Limpiar búsqueda",
         "nextPage": "Ver la página siguiente",
-        "bodyServer": "No hay productos en el almacén de la UE para esta búsqueda.",
-        "searchBodyServer": "Ningún producto contiene «{q}». El catálogo de este proveedor está en inglés: prueba otra palabra.",
+        "bodyServer": "No hay productos en el almacén de la UE para esta búsqueda. Si buscas algo fuera de hogar, decoración, iluminación y textiles, quita ese filtro.",
+        "searchBodyServer": "Ningún producto contiene «{q}». El catálogo de este proveedor está en inglés: prueba otra palabra o quita el filtro de categorías.",
         "searchTitleServer": "Sin coincidencias"
       },
       "loading": "Cargando el catálogo…",
@@ -300,7 +301,8 @@
             "shippingRoute": "Envío real desde {origin} ({method}, {days} días)",
             "shippingRouteNoDays": "Envío real desde {origin} ({method})"
           },
-          "note": "Cálculo del servidor con los ajustes actuales. El envío es un valor medio."
+          "noteRoute": "Cálculo del servidor. Coste y envío vienen del proveedor: el envío es el flete real de esta pieza. IVA, comisiones y devoluciones salen de los ajustes.",
+          "noteAverage": "Cálculo del servidor con los ajustes actuales. Este proveedor no da flete por pieza: el envío es la media de los ajustes."
         },
         "below": {
           "title": "Margen por debajo del mínimo",

@@ -6,9 +6,10 @@ import type { AdminCatalogQuery } from "./catalog";
 
 /**
  * Estado del buscador de /admin/import, guardado en la URL (compartible, botón
- * atrás correcto): `?supplier=&q=&page=&eu=0&stock=0`. Por defecto CJ, y "solo
- * almacén UE" y "solo con stock" activos; la URL solo lleva lo que se aparta de
- * eso. Los filtros solo existen para BigBuy: CJ lista siempre stock UE. Se valida
+ * atrás correcto): `?supplier=&q=&page=&eu=0&stock=0&curated=0`. Por defecto CJ,
+ * y "solo almacén UE", "solo con stock" y "solo categorías curadas" activos; la
+ * URL solo lleva lo que se aparta de eso. `eu`/`stock` solo existen para BigBuy
+ * (CJ lista siempre stock UE) y `curated` solo para CJ. Se valida
  * con el mismo `parseProductsQuery` que la API: lo que está fuera de rango se
  * rechaza, no se "corrige".
  */
@@ -23,6 +24,8 @@ export interface ImportUiState {
   page: number;
   eu: boolean;
   stock: boolean;
+  /** Solo categorías de hogar, decoración, iluminación y textiles (CJ). */
+  curated: boolean;
 }
 
 export type ImportParams =
@@ -45,6 +48,7 @@ export function parseImportParams(sp: RawSearchParams): ImportParams {
   const q = last(sp.q)?.trim() ?? "";
   const eu = supplier === "cj" || last(sp.eu) !== "0";
   const stock = supplier === "cj" || last(sp.stock) !== "0";
+  const curated = supplier !== "cj" || last(sp.curated) !== "0";
 
   const params = new URLSearchParams();
   if (q) params.set("q", q);
@@ -56,7 +60,11 @@ export function parseImportParams(sp: RawSearchParams): ImportParams {
 
   try {
     const query = parseProductsQuery(params);
-    return { ok: true, query: { ...query, supplier }, ui: { supplier, q: query.query ?? "", page: query.page, eu, stock } };
+    return {
+      ok: true,
+      query: { ...query, supplier, curatedOnly: curated },
+      ui: { supplier, q: query.query ?? "", page: query.page, eu, stock, curated },
+    };
   } catch {
     return { ok: false };
   }
@@ -70,5 +78,6 @@ export function importQueryString(ui: Partial<ImportUiState>): string {
   if (ui.page && ui.page > 1) p.set("page", String(ui.page));
   if (ui.eu === false) p.set("eu", "0");
   if (ui.stock === false) p.set("stock", "0");
+  if (ui.curated === false) p.set("curated", "0");
   return p.toString();
 }

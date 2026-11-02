@@ -33,6 +33,8 @@ export interface AdminCatalogQuery {
   lang: "es" | "en";
   euOnly: boolean;
   inStockOnly: boolean;
+  /** Por defecto true (ver `ListProductsParams.curatedOnly`). */
+  curatedOnly?: boolean;
 }
 
 export type AdminCatalogErrorCode = "unauthenticated" | "forbidden" | SupplierErrorCode;
@@ -74,6 +76,7 @@ export async function listAdminCatalog(
       lang: query.lang,
       euOnly: query.euOnly,
       inStockOnly: query.inStockOnly,
+      curatedOnly: query.curatedOnly,
     });
     const params = await (deps.getMarginParams ?? (() => marginSettings().get()))();
     // El tipo de cambio solo se pide si hace falta (BigBuy cobra en EUR).

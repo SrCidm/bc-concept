@@ -408,7 +408,7 @@ export function ImportDialog({ product, onClose }: { product: ImportDialogProduc
                   {t("margin.calculating")}
                 </p>
               )}
-              <p className="text-xs text-bc-text-secondary">{t("margin.note")}</p>
+              <p className="text-xs text-bc-text-secondary">{t(preview.shipping ? "margin.noteRoute" : "margin.noteAverage")}</p>
             </section>
 
             {error && error !== "aborted" && (

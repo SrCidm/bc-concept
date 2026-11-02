@@ -6,14 +6,14 @@ describe("parseImportParams", () => {
     const r = parseImportParams({});
     expect(r.ok).toBe(true);
     if (!r.ok) return;
-    expect(r.ui).toEqual({ supplier: "cj", q: "", page: 1, eu: true, stock: true });
+    expect(r.ui).toEqual({ supplier: "cj", q: "", page: 1, eu: true, stock: true, curated: true });
     expect(r.query).toMatchObject({ page: 1, pageSize: 24, euOnly: true, inStockOnly: true, lang: "es" });
   });
 
   test("BigBuy: eu=0 / stock=0 apagan los filtros; q se recorta", () => {
     const r = parseImportParams({ supplier: "bigbuy", q: "  lámpara ", page: "3", eu: "0", stock: "0" });
     if (!r.ok) throw new Error("debería ser válido");
-    expect(r.ui).toEqual({ supplier: "bigbuy", q: "lámpara", page: 3, eu: false, stock: false });
+    expect(r.ui).toEqual({ supplier: "bigbuy", q: "lámpara", page: 3, eu: false, stock: false, curated: true });
     expect(r.query).toMatchObject({ query: "lámpara", page: 3, euOnly: false, inStockOnly: false });
   });
 

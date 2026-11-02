@@ -10,13 +10,13 @@ import { SupplierSelector } from "@/components/admin/import/SupplierSelector";
 import { ImportResults } from "./ImportResults";
 
 export const dynamic = "force-dynamic";
-/** CJ: listado con ~2 s de cola, más token y reintentos si limita. */
+/** CJ: ~2 s de cola por llamada; el primer listado curado de cada proceso, ~25 s. */
 export const maxDuration = 60;
 
 /**
  * Importación desde un proveedor: selector + buscador + grid. El estado vive en
- * la URL (`?supplier=&q=&page=&eu=0&stock=0`). La página se protege a sí misma y los datos con
- * coste los pide `listAdminCatalog`, que vuelve a exigir la sesión.
+ * la URL (`?supplier=&q=&page=&eu=0&stock=0&curated=0`). La página se protege a sí
+ * misma y los datos con coste los pide `listAdminCatalog`, que vuelve a exigir la sesión.
  */
 export default async function AdminImportPage({
   searchParams,
@@ -40,7 +40,13 @@ export default async function AdminImportPage({
 
       {parsed.ok ? (
         <>
-          <ImportSearchForm supplier={parsed.ui.supplier} q={parsed.ui.q} eu={parsed.ui.eu} stock={parsed.ui.stock} />
+          <ImportSearchForm
+            supplier={parsed.ui.supplier}
+            q={parsed.ui.q}
+            eu={parsed.ui.eu}
+            stock={parsed.ui.stock}
+            curated={parsed.ui.curated}
+          />
           {/* `key`: cada búsqueda/página nueva vuelve a mostrar el esqueleto. */}
           <Suspense key={importQueryString(parsed.ui)} fallback={<ImportGridSkeleton />}>
             <ImportResults params={parsed} />

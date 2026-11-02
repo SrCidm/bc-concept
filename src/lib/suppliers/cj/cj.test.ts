@@ -6,7 +6,8 @@ import { SupplierError } from "../errors";
 import { createCjAuth, parseTokens, type CjAuthState } from "./auth";
 import { classifyCjResponse, createCjClient, isTokenRejected, type CjQueue, type CjRequest } from "./client";
 import { CJ_ENDPOINTS } from "./endpoints";
-import { createCjAdapter } from "./index";
+import { CJ_CURATED_CATEGORIES, CJ_CURATED_IDS } from "./categories";
+import { createCjAdapter, type CjCuratedIndexState } from "./index";
 import { cleanDescription, mapCjListItem, mapCjProduct, parseCjPrice, parseCjRoutes } from "./mappers";
 import type { SupplierProduct } from "../types";
 
@@ -51,6 +52,7 @@ function memoryTokens(initial: SupplierTokens | null = null) {
   return { store, saved };
 }
 const newState = (): CjAuthState => ({ current: null, loadedAt: 0, rejected: null, inflight: null });
+const newIndex = (): CjCuratedIndexState => ({ value: null, inflight: null });
 
 const validTokens = (over: Partial<SupplierTokens> = {}): SupplierTokens => ({
   accessToken: "tok-valido",
@@ -463,31 +465,34 @@ describe("mappers con respuestas reales", () => {
   });
 });
 
-describe("adaptador completo contra una API falsa", () => {
-  function adapter(routes: (path: string, url: URL, init?: RequestInit) => Response, tokens: SupplierTokens | null = validTokens(), apiKey: string | null = "k") {
-    const time = fakeTime();
-    const seen: { path: string; url: URL; token: string | null }[] = [];
-    const mem = memoryTokens(tokens);
-    const a = createCjAdapter({
-      now: time.now,
-      sleep: time.sleep,
-      queue: newQueue(),
-      authState: newState(),
-      tokenStore: mem.store,
-      getApiKey: async () => apiKey,
-      fetchImpl: (async (input: string | URL | Request, init?: RequestInit) => {
-        const url = new URL(String(input));
-        const path = url.pathname.replace("/api2.0/v1", "");
-        seen.push({ path, url, token: new Headers(init?.headers).get("CJ-Access-Token") });
-        return routes(path, url, init);
-      }) as typeof fetch,
-    });
-    return { a, seen, mem };
-  }
+/** Adaptador completo contra una API de CJ falsa (reloj, cola, sesión e índice propios). */
+function adapter(routes: (path: string, url: URL, init?: RequestInit) => Response, tokens: SupplierTokens | null = validTokens(), apiKey: string | null = "k") {
+  const time = fakeTime();
+  const index = newIndex();
+  const seen: { path: string; url: URL; token: string | null }[] = [];
+  const mem = memoryTokens(tokens);
+  const a = createCjAdapter({
+    now: time.now,
+    sleep: time.sleep,
+    queue: newQueue(),
+    authState: newState(),
+    curatedIndex: index,
+    tokenStore: mem.store,
+    getApiKey: async () => apiKey,
+    fetchImpl: (async (input: string | URL | Request, init?: RequestInit) => {
+      const url = new URL(String(input));
+      const path = url.pathname.replace("/api2.0/v1", "");
+      seen.push({ path, url, token: new Headers(init?.headers).get("CJ-Access-Token") });
+      return routes(path, url, init);
+    }) as typeof fetch,
+  });
+  return { a, seen, mem, time, index };
+}
 
-  test("listProducts usa V1 con almacén ES y palabra clave, y calcula hasMore", async () => {
+describe("adaptador completo contra una API falsa", () => {
+  test("sin filtro de categorías: V1 con almacén ES y palabra clave, y calcula hasMore", async () => {
     const { a, seen } = adapter(() => json(fixture("list-v1-es-vase")));
-    const page = await a.listProducts({ query: " vase ", pageSize: 3, euOnly: false });
+    const page = await a.listProducts({ query: " vase ", pageSize: 3, euOnly: false, curatedOnly: false });
     expect(seen[0].path).toBe("/product/list");
     expect(seen[0].url.searchParams.get("countryCode")).toBe("ES");
     expect(seen[0].url.searchParams.get("productNameEn")).toBe("vase");
@@ -499,8 +504,8 @@ describe("adaptador completo contra una API falsa", () => {
 
   test("el mismo listado se reutiliza un minuto", async () => {
     const { a, seen } = adapter(() => json(fixture("list-v1-es-vase")));
-    await a.listProducts({ query: "vase" });
-    await a.listProducts({ query: "vase" });
+    await a.listProducts({ query: "vase", curatedOnly: false });
+    await a.listProducts({ query: "vase", curatedOnly: false });
     expect(seen.length).toBe(1);
   });
 
@@ -531,7 +536,7 @@ describe("adaptador completo contra una API falsa", () => {
       }
       return json(fixture("list-v1-es-vase"));
     });
-    await a.listProducts();
+    await a.listProducts({ curatedOnly: false });
     expect(seen.map((s) => s.token)).toEqual(["tok-valido", null, "tok-2"]);
     expect(mem.saved.at(-1)?.accessToken).toBe("tok-2");
   });
@@ -701,5 +706,83 @@ describe("diagnóstico en logs", () => {
 
   test("una respuesta correcta no registra nada", async () => {
     expect(await logged({ code: 200, result: true, data: {} })).toEqual([]);
+  });
+});
+
+describe("listado curado por categorías", () => {
+  const CURATED = CJ_CURATED_CATEGORIES[0].id;
+  const PET = "2410110337031615300"; // Pet Drinking & Feeding: fuera de la lista
+  const base = fixture("list-v1-es-vase").data.list[0];
+  const item = (n: number, categoryId: string, title: string) => ({ ...base, pid: `p${n}`, productSku: `SKU${n}`, productNameEn: title, categoryId });
+
+  /** Almacén falso de 450 productos en 3 páginas de 200: 1 de cada 3 fuera de la lista. */
+  const warehouse = Array.from({ length: 450 }, (_, i) =>
+    i % 3 === 2 ? item(i, PET, `Pet Bowl ${i}`) : item(i, CURATED, i % 2 ? `Vase Glass Wide ${i}` : `Photo Frame Wood ${i}`),
+  );
+  function cjList(url: URL) {
+    const pageNum = Number(url.searchParams.get("pageNum"));
+    const size = Number(url.searchParams.get("pageSize"));
+    return ok({ pageNum, pageSize: size, total: warehouse.length, list: warehouse.slice((pageNum - 1) * size, pageNum * size) });
+  }
+
+  test("lista solo hojas válidas y sin repetir", () => {
+    expect(CJ_CURATED_IDS.size).toBe(CJ_CURATED_CATEGORIES.length);
+    for (const c of CJ_CURATED_CATEGORIES) expect(c.id).toMatch(/^[A-Za-z0-9-]{1,64}$/);
+    expect(CJ_CURATED_IDS.has(PET)).toBe(false);
+    expect(CJ_CURATED_IDS.has("C329460A-9074-4E42-B1FD-D9E91568A64B")).toBe(false); // fiesta y confeti
+  });
+
+  test("por defecto recorre el almacén ES una vez y se queda con las categorías curadas", async () => {
+    const { a, seen } = adapter((_path, url) => cjList(url));
+    const page = await a.listProducts({ pageSize: 24 });
+    expect(seen.map((s) => [s.url.searchParams.get("pageNum"), s.url.searchParams.get("pageSize"), s.url.searchParams.get("countryCode")])).toEqual([
+      ["1", "200", "ES"],
+      ["2", "200", "ES"],
+      ["3", "200", "ES"],
+    ]);
+    expect(seen.every((s) => !s.url.searchParams.has("categoryId") && !s.url.searchParams.has("productNameEn"))).toBe(true);
+    expect(page.items).toHaveLength(24);
+    expect(page.items.some((p) => p.title.startsWith("Pet"))).toBe(false);
+    expect(page.hasMore).toBe(true);
+  });
+
+  test("búsqueda y paginación locales, sin volver a llamar a CJ", async () => {
+    const { a, seen } = adapter((_path, url) => cjList(url));
+    await a.listProducts();
+    const calls = seen.length;
+    // 300 curados: 150 "Vase Glass Wide", 150 "Photo Frame Wood".
+    const vases = await a.listProducts({ query: "wide VASE", pageSize: 100, page: 2 });
+    expect(vases.items).toHaveLength(50);
+    expect(vases.items.every((p) => p.title.startsWith("Vase Glass Wide"))).toBe(true);
+    expect(vases.hasMore).toBe(false);
+    expect((await a.listProducts({ query: "pet" })).items).toHaveLength(0);
+    expect(seen.length).toBe(calls);
+  });
+
+  test("el índice caduca a las 6 h; dos peticiones a la vez lo construyen una sola vez", async () => {
+    const { a, seen, time } = adapter((_path, url) => cjList(url));
+    await Promise.all([a.listProducts(), a.listProducts({ query: "vase" })]);
+    expect(seen.length).toBe(3);
+    time.advance(6 * 60 * 60_000);
+    await a.listProducts();
+    expect(seen.length).toBe(6);
+  });
+
+  test("quitar el filtro o pedir una categoría concreta usa la consulta directa", async () => {
+    const { a, seen } = adapter((_path, url) => cjList(url));
+    await a.listProducts({ curatedOnly: false, query: "pet" });
+    expect(seen[0].url.searchParams.get("productNameEn")).toBe("pet");
+    await a.listProducts({ category: PET });
+    expect(seen[1].url.searchParams.get("categoryId")).toBe(PET);
+    expect(seen.length).toBe(2);
+  });
+
+  test("si falla a medias no se guarda un índice parcial", async () => {
+    let fail = true;
+    const { a, index } = adapter((_path, url) => (fail && url.searchParams.get("pageNum") === "2" ? json({ code: 1600300, result: false }) : cjList(url)));
+    await expect(a.listProducts()).rejects.toMatchObject({ code: "invalid_request" });
+    expect(index.value).toBeNull();
+    fail = false;
+    expect((await a.listProducts()).items.length).toBeGreaterThan(0);
   });
 });

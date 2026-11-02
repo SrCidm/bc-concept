@@ -16,6 +16,7 @@ interface Props {
   q: string;
   eu: boolean;
   stock: boolean;
+  curated: boolean;
 }
 
 /**
@@ -24,17 +25,23 @@ interface Props {
  * último). Con JS añade el estado pendiente y evita parámetros por defecto en la
  * URL. Cada búsqueda nueva vuelve a la página 1.
  */
-export function ImportSearchForm({ supplier, q, eu, stock }: Props) {
+export function ImportSearchForm({ supplier, q, eu, stock, curated }: Props) {
   const t = useTranslations("admin.import.search");
-  // CJ lista siempre stock UE y busca por el nombre en inglés.
+  // CJ lista siempre stock UE y busca por el nombre en inglés; su filtro es el de categorías.
   const filters = supplier === "bigbuy";
+  const categoryFilter = supplier === "cj";
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [text, setText] = useState(q);
   const [euOnly, setEuOnly] = useState(eu);
   const [inStock, setInStock] = useState(stock);
+  const [curatedOnly, setCuratedOnly] = useState(curated);
 
-  const dirty = q !== "" || text !== "" || (filters && (!eu || !stock || !euOnly || !inStock));
+  const dirty =
+    q !== "" ||
+    text !== "" ||
+    (filters && (!eu || !stock || !euOnly || !inStock)) ||
+    (categoryFilter && (!curated || !curatedOnly));
 
   function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -44,6 +51,7 @@ export function ImportSearchForm({ supplier, q, eu, stock }: Props) {
     if (value) p.set("q", value);
     if (filters && !euOnly) p.set("eu", "0");
     if (filters && !inStock) p.set("stock", "0");
+    if (categoryFilter && !curatedOnly) p.set("curated", "0");
     const qs = p.toString();
     startTransition(() => router.push(importHref(qs)));
   }
@@ -100,6 +108,24 @@ export function ImportSearchForm({ supplier, q, eu, stock }: Props) {
           {t("inStockOnly")}
         </label>
       </fieldset>}
+
+      {categoryFilter && (
+        <fieldset className="flex flex-wrap items-center gap-x-5">
+          <legend className="sr-only">{t("filtersLabel")}</legend>
+          <label className={checkboxLabel}>
+            <input type="hidden" name="curated" value="0" />
+            <input
+              type="checkbox"
+              name="curated"
+              value="1"
+              checked={curatedOnly}
+              onChange={(e) => setCuratedOnly(e.target.checked)}
+              className={checkbox}
+            />
+            {t("curatedOnly")}
+          </label>
+        </fieldset>
+      )}
 
       <div className="flex items-center gap-2">
         <button

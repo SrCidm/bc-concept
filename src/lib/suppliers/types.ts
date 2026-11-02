@@ -93,6 +93,12 @@ export interface ListProductsParams {
   euOnly?: boolean;
   /** Por defecto true: descarta productos sin stock. */
   inStockOnly?: boolean;
+  /**
+   * Por defecto true: solo las categorías del proveedor que encajan con la tienda
+   * (hogar, decoración, iluminación, textiles), si el proveedor tiene esa lista
+   * (hoy CJ). Con `category` explícita no se aplica.
+   */
+  curatedOnly?: boolean;
 }
 
 export interface ProductPage {

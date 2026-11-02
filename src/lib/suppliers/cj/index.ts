@@ -1,9 +1,10 @@
 import "server-only";
 import { createSupabaseTokenStore, resolveApiKey, type TokenStore } from "../credentials";
 import { SupplierError, isSupplierError } from "../errors";
-import { list, rec, num } from "../raw";
+import { list, rec, num, text } from "../raw";
 import type { AuthResult, ListProductsParams, ProductPage, ShippingRoute, SupplierAdapter, SupplierProduct } from "../types";
 import { createCjAuth, type CjAuthState } from "./auth";
+import { CJ_CURATED_IDS } from "./categories";
 import { createCjClient, isTokenRejected, type CjClientDeps, type CjRequest } from "./client";
 import { CJ_ENDPOINTS, CJ_LISTED_WAREHOUSES } from "./endpoints";
 import { mapCjListItem, mapCjProduct, parseCjRoutes } from "./mappers";
@@ -14,6 +15,14 @@ export interface CjDeps extends CjClientDeps {
   tokenStore?: TokenStore;
   authState?: CjAuthState;
   listCacheTtlMs?: number;
+  curatedIndex?: CjCuratedIndexState;
+  curatedIndexTtlMs?: number;
+}
+
+/** Productos del almacén listado en las categorías curadas, ya mapeados. */
+export interface CjCuratedIndexState {
+  value: { at: number; items: SupplierProduct[] } | null;
+  inflight: Promise<SupplierProduct[]> | null;
 }
 
 const DEFAULT_PAGE_SIZE = 24;
@@ -22,8 +31,30 @@ const ID_PATTERN = /^[A-Za-z0-9_-]{1,64}$/;
 const LIST_CACHE_MAX = 50;
 const FREIGHT_CACHE_TTL_MS = 60 * 60_000;
 const FREIGHT_CACHE_MAX = 200;
+/** El almacén ES entero son ~10 páginas de 200 (~25 s con la cola): se rehace cada 6 h. */
+const CURATED_INDEX_TTL_MS = 6 * 60 * 60_000;
+const INDEX_PAGE_SIZE = 200;
+const INDEX_MAX_PAGES = 25;
 
 const clamp = (n: number, min: number, max: number) => Math.min(Math.max(n, min), max);
+
+const globalStore = globalThis as unknown as { __bcCjCuratedIndex?: CjCuratedIndexState };
+
+/** En `globalThis`: la página y la ruta del listado comparten el índice. */
+function sharedIndex(): CjCuratedIndexState {
+  globalStore.__bcCjCuratedIndex ??= { value: null, inflight: null };
+  return globalStore.__bcCjCuratedIndex;
+}
+
+/** Todas las palabras de la búsqueda, en cualquier orden, dentro del título. */
+function matchesKeyword(title: string, keyword: string): boolean {
+  const haystack = title.toLowerCase();
+  return keyword
+    .toLowerCase()
+    .split(/\s+/)
+    .filter(Boolean)
+    .every((w) => haystack.includes(w));
+}
 
 export function createCjAdapter(deps: CjDeps = {}): SupplierAdapter {
   const now = deps.now ?? Date.now;
@@ -64,6 +95,53 @@ export function createCjAdapter(deps: CjDeps = {}): SupplierAdapter {
     return value;
   }
 
+  /**
+   * V1 solo filtra por un `categoryId` cada vez (con varios separados por coma
+   * devuelve 0), así que el listado curado recorre el almacén entero una vez y
+   * se queda con las hojas de `CJ_CURATED_CATEGORIES`. Búsqueda y paginación
+   * son locales. Una sola construcción a la vez por proceso.
+   */
+  const indexState = deps.curatedIndex ?? sharedIndex();
+  const indexTtl = deps.curatedIndexTtlMs ?? CURATED_INDEX_TTL_MS;
+
+  async function buildCuratedIndex(): Promise<SupplierProduct[]> {
+    const items: SupplierProduct[] = [];
+    for (let pageNum = 1; pageNum <= INDEX_MAX_PAGES; pageNum++) {
+      const data = rec(
+        await api({
+          method: "GET",
+          path: CJ_ENDPOINTS.products,
+          query: { pageNum, pageSize: INDEX_PAGE_SIZE, countryCode: CJ_LISTED_WAREHOUSES[0] },
+        }),
+      );
+      if (!data || !Array.isArray(data.list)) throw new SupplierError("bad_response");
+      const raw = list(data.list);
+      for (const r of raw) {
+        if (!CJ_CURATED_IDS.has(text(rec(r)?.categoryId) ?? "")) continue;
+        const p = mapCjListItem(r);
+        if (p) items.push(p);
+      }
+      const total = num(data.total);
+      if (raw.length < INDEX_PAGE_SIZE || (total !== null && pageNum * INDEX_PAGE_SIZE >= total)) return items;
+    }
+    console.error("[cj] índice curado incompleto: el almacén supera el máximo de páginas");
+    return items;
+  }
+
+  async function curatedItems(): Promise<SupplierProduct[]> {
+    const cached = indexState.value;
+    if (cached && now() - cached.at < indexTtl) return cached.items;
+    indexState.inflight ??= buildCuratedIndex()
+      .then((items) => {
+        indexState.value = { at: now(), items };
+        return items;
+      })
+      .finally(() => {
+        indexState.inflight = null;
+      });
+    return indexState.inflight;
+  }
+
   async function routesFrom(origin: string, destination: string, vid: string): Promise<ShippingRoute[]> {
     const key = `${origin}|${destination}|${vid}`;
     const hit = freightCache.get(key);
@@ -98,18 +176,29 @@ export function createCjAdapter(deps: CjDeps = {}): SupplierAdapter {
     /**
      * Siempre solo UE (`euOnly` se ignora): un producto sin almacén UE explícito no
      * se lista. V1 no da cantidades; el filtro de país garantiza stock en ese almacén.
+     * Por defecto, solo categorías curadas (ver `buildCuratedIndex`).
      */
     async listProducts(params: ListProductsParams = {}): Promise<ProductPage> {
       const page = Math.max(1, Math.floor(params.page ?? 1));
       const pageSize = clamp(Math.floor(params.pageSize ?? DEFAULT_PAGE_SIZE), 1, MAX_PAGE_SIZE);
+      const keyword = params.query?.trim();
+      const category = params.category && ID_PATTERN.test(params.category) ? params.category : null;
+
+      if (params.curatedOnly !== false && !category) {
+        const all = await curatedItems();
+        const matched = keyword ? all.filter((p) => matchesKeyword(p.title, keyword)) : all;
+        const start = (page - 1) * pageSize;
+        const items = matched.slice(start, start + pageSize);
+        return { items, page, pageSize, hasMore: start + pageSize < matched.length, fetched: items.length };
+      }
+
       const query: Record<string, string | number> = {
         pageNum: page,
         pageSize,
         countryCode: CJ_LISTED_WAREHOUSES[0],
       };
-      const keyword = params.query?.trim();
       if (keyword) query.productNameEn = keyword;
-      if (params.category && ID_PATTERN.test(params.category)) query.categoryId = params.category;
+      if (category) query.categoryId = category;
 
       const data = rec(await listRaw(query));
       if (!data || !Array.isArray(data.list)) throw new SupplierError("bad_response");
