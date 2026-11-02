@@ -10,7 +10,8 @@
 --   · Trigger updated_at automático en products, orders, supplier_credentials
 -- Sincronizado con la BD real (ngctedqwmofhdvjowgva) tras las migraciones
 -- v2.2 (catálogo + búsqueda), v2.3 (grants de escritura), v2.4 (funciones)
--- y v2.5 (margin_settings: ajustes de margen de solo inserción).
+-- v2.5 (margin_settings: ajustes de margen de solo inserción) y v2.6 (fx_rates,
+-- colchón de cambio y snapshot de importación).
 -- ============================================================================
 
 -- ----------------------------------------------------------------------------
@@ -306,3 +307,80 @@ CREATE TRIGGER margin_settings_no_truncate
 -- 8. Recargar la cache de PostgREST para que la API vea el nuevo esquema
 -- ----------------------------------------------------------------------------
 NOTIFY pgrst, 'reload schema';
+
+-- ----------------------------------------------------------------------------
+-- 7.8 USD→EUR Y SNAPSHOT DE IMPORTACIÓN (migration_v2_6_cj_fx.sql)
+--     price_cost es SIEMPRE EUR; cost_original y cost_currency guardan el coste
+--     original. Las columnas nuevas no tienen grant a anon/authenticated y
+--     products_public no cambia.
+-- ----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.fx_rates (
+  base       TEXT          NOT NULL CHECK (base ~ '^[A-Z]{3}$'),
+  quote      TEXT          NOT NULL CHECK (quote ~ '^[A-Z]{3}$'),
+  rate       NUMERIC(12,6) NOT NULL CHECK (rate > 0),
+  rate_date  DATE          NOT NULL,
+  fetched_at TIMESTAMPTZ   NOT NULL DEFAULT NOW(),
+  PRIMARY KEY (base, quote, rate_date)
+);
+
+ALTER TABLE public.fx_rates ENABLE ROW LEVEL SECURITY;  -- sin políticas a propósito
+REVOKE ALL ON public.fx_rates FROM PUBLIC, anon, authenticated;
+REVOKE UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER ON public.fx_rates FROM service_role;
+GRANT SELECT, INSERT ON public.fx_rates TO service_role;
+
+-- Un tipo publicado no se reescribe: el snapshot de cada producto apunta a él.
+CREATE OR REPLACE FUNCTION public.fx_rates_append_only()
+RETURNS trigger
+LANGUAGE plpgsql
+SET search_path = ''
+AS $$
+BEGIN
+  RAISE EXCEPTION 'fx_rates es de solo inserción'
+    USING ERRCODE = 'insufficient_privilege';
+END;
+$$;
+REVOKE EXECUTE ON FUNCTION public.fx_rates_append_only() FROM PUBLIC, anon, authenticated;
+
+DROP TRIGGER IF EXISTS fx_rates_no_update_delete ON public.fx_rates;
+CREATE TRIGGER fx_rates_no_update_delete
+  BEFORE UPDATE OR DELETE ON public.fx_rates
+  FOR EACH ROW EXECUTE FUNCTION public.fx_rates_append_only();
+
+DROP TRIGGER IF EXISTS fx_rates_no_truncate ON public.fx_rates;
+CREATE TRIGGER fx_rates_no_truncate
+  BEFORE TRUNCATE ON public.fx_rates
+  FOR EACH STATEMENT EXECUTE FUNCTION public.fx_rates_append_only();
+
+-- ----------------------------------------------------------------------------
+-- 2. Colchón de cambio en los ajustes de margen
+--    (ADD COLUMN con DEFAULT no dispara el trigger de solo inserción.)
+-- ----------------------------------------------------------------------------
+ALTER TABLE public.margin_settings
+  ADD COLUMN IF NOT EXISTS fx_buffer_pct NUMERIC(4,2) NOT NULL DEFAULT 3
+    CHECK (fx_buffer_pct BETWEEN 0 AND 10);
+
+-- ----------------------------------------------------------------------------
+-- 3. Snapshot de importación (INTERNO: sin grant a anon/authenticated)
+-- ----------------------------------------------------------------------------
+ALTER TABLE public.products
+  ADD COLUMN IF NOT EXISTS cost_original         NUMERIC(10,2) CHECK (cost_original >= 0),
+  ADD COLUMN IF NOT EXISTS fx_rate               NUMERIC(12,6) CHECK (fx_rate > 0),
+  ADD COLUMN IF NOT EXISTS fx_rate_date          DATE,
+  ADD COLUMN IF NOT EXISTS fx_buffer_pct         NUMERIC(4,2)  CHECK (fx_buffer_pct BETWEEN 0 AND 10),
+  ADD COLUMN IF NOT EXISTS shipping_estimate     NUMERIC(8,2)  CHECK (shipping_estimate >= 0),
+  ADD COLUMN IF NOT EXISTS shipping_method       TEXT,
+  ADD COLUMN IF NOT EXISTS supplier_product_type TEXT,
+  ADD COLUMN IF NOT EXISTS supplier_seller_id    TEXT,
+  ADD COLUMN IF NOT EXISTS supplier_seller_name  TEXT;
+
+ALTER TABLE public.product_variants
+  ADD COLUMN IF NOT EXISTS cost_original NUMERIC(10,2) CHECK (cost_original >= 0);
+
+COMMENT ON COLUMN public.products.price_cost IS
+  'INTERNO. Coste en EUR que usa la guarda (con colchón de cambio si el original no es EUR). Nunca al cliente.';
+COMMENT ON COLUMN public.products.cost_currency IS
+  'Moneda del coste original del proveedor (EUR, USD).';
+COMMENT ON COLUMN public.products.cost_original IS
+  'INTERNO. Coste original del proveedor en cost_currency.';
+COMMENT ON COLUMN public.product_variants.price_cost IS
+  'INTERNO. Coste en EUR (ver products.price_cost). Nunca al cliente.';

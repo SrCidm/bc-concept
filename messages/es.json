@@ -136,6 +136,10 @@
         "note": {
           "label": "Nota (opcional)",
           "help": "Por qué cambias los ajustes. Queda en el historial."
+        },
+        "fxBufferPct": {
+          "label": "Colchón de cambio",
+          "help": "Margen de seguridad sobre el tipo oficial del BCE al convertir costes en dólares: el banco o PayPal cobran un tipo peor."
         }
       },
       "range": "Entre {min} y {max}",
@@ -284,7 +288,9 @@
             "stripe": "Comisión Stripe",
             "returns": "Colchón de devoluciones",
             "acquisition": "Adquisición (ads)",
-            "margin": "Margen neto"
+            "margin": "Margen neto",
+            "costFx": "Coste ({currency} {amount} × tipo {rate} + colchón {buffer} %)",
+            "fxStale": "No se ha podido consultar el tipo de hoy: se usa el último guardado, de hace {days, plural, one {# día} other {# días}}."
           },
           "note": "Cálculo del servidor con los ajustes actuales. El envío es un valor medio."
         },
@@ -333,7 +339,8 @@
           "currency_mismatch": "No se puede importar: el coste no está en euros.",
           "margin_below_min": "El margen está por debajo del mínimo: marca la confirmación para poder guardarlo.",
           "storage_failed": "No se ha podido guardar. Inténtalo de nuevo.",
-          "network": "No se ha podido conectar. Revisa tu conexión."
+          "network": "No se ha podido conectar. Revisa tu conexión.",
+          "fx_unavailable": "No se puede calcular el margen: no hay un tipo de cambio reciente. Inténtalo más tarde."
         }
       },
       "error": {

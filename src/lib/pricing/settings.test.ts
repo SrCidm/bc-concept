@@ -19,7 +19,7 @@ describe("DEFAULT_MARGIN_PARAMS (a validar con Yosra)", () => {
       shippingCost: 4.5,
       stripePct: 1.5,
       stripeFixed: 0.25,
-      returnsBufferPct: 6,
+      returnsBufferPct: 6, fxBufferPct: 3,
       acquisitionCost: 0,
       targetMinPct: 15,
       targetMaxPct: 35,
@@ -51,7 +51,7 @@ describe("marginParamsFromEnv", () => {
     expect(p).toEqual({
       ...DEFAULT_MARGIN_PARAMS,
       shippingCost: 5.25,
-      returnsBufferPct: 7,
+      returnsBufferPct: 7, fxBufferPct: 3,
       acquisitionCost: 2,
       targetMinPct: 20,
     });
@@ -92,7 +92,7 @@ describe("IVA fijo en código", () => {
 // ---------------------------------------------------------------- fuente BD
 
 const STORED = {
-  returnsBufferPct: 8,
+  returnsBufferPct: 8, fxBufferPct: 3,
   shippingCost: 5.25,
   acquisitionCost: 2,
   targetMinPct: 20,
@@ -130,7 +130,7 @@ describe("resolveMarginSettings: precedencia BD > MARGIN_* > defaults", () => {
     expect(r.degraded).toBe(false);
     expect(r.params).toEqual({
       vatPct: 21,
-      returnsBufferPct: 8,
+      returnsBufferPct: 8, fxBufferPct: 3,
       shippingCost: 5.25,
       acquisitionCost: 2,
       targetMinPct: 20,

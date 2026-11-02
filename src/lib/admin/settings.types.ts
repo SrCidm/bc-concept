@@ -12,6 +12,7 @@ export const MARGIN_FIELDS = [
   "shippingCost",
   "acquisitionCost",
   "returnsBufferPct",
+  "fxBufferPct",
   "stripePct",
   "stripeFixed",
 ] as const;
@@ -20,6 +21,7 @@ export type MarginField = (typeof MARGIN_FIELDS)[number];
 /** Rangos cerrados (incluidos los extremos). `targetMaxPct` además debe ser ≥ `targetMinPct`. */
 export const MARGIN_RANGES: Readonly<Record<MarginField, { min: number; max: number; unit: "%" | "€" }>> = {
   returnsBufferPct: { min: 0, max: 30, unit: "%" },
+  fxBufferPct: { min: 0, max: 10, unit: "%" },
   shippingCost: { min: 0, max: 100, unit: "€" },
   acquisitionCost: { min: 0, max: 200, unit: "€" },
   targetMinPct: { min: 0, max: 80, unit: "%" },

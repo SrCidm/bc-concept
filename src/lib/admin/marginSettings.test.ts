@@ -13,7 +13,7 @@ const NO_SESSION: AdminDecision = { ok: false, status: 401, code: "unauthenticat
 const NOT_ADMIN: AdminDecision = { ok: false, status: 403, code: "forbidden", message: "x", email: "intruso@bc.com" };
 
 const NEW_VALUES: MarginValuesDTO = {
-  returnsBufferPct: 8,
+  returnsBufferPct: 8, fxBufferPct: 3,
   shippingCost: 6,
   acquisitionCost: 3,
   targetMinPct: 25,
@@ -118,7 +118,7 @@ describe("saveMarginSettings", () => {
 
   test("fuera de rango → invalid_request con los CAMPOS, sin escribir y sin eco de los valores", async () => {
     const { deps, mem } = setup();
-    const r = await saveMarginSettings({ ...NEW_VALUES, returnsBufferPct: 77.77, stripeFixed: 9 }, deps);
+    const r = await saveMarginSettings({ ...NEW_VALUES, returnsBufferPct: 77.77, fxBufferPct: 3, stripeFixed: 9 }, deps);
     expect(r).toEqual({ ok: false, code: "invalid_request", fields: ["returnsBufferPct", "stripeFixed"] });
     expect(mem.calls).not.toContain("insert");
     expect(JSON.stringify(r)).not.toContain("77.77");
@@ -258,7 +258,7 @@ describe("previewMarginSettings (ejemplo en vivo, sin guardar)", () => {
 
   test("inalcanzable (colchón + mínimo se comen todo) → minPrice null, sin romper", async () => {
     const { deps } = setup();
-    const r = await previewMarginSettings({ ...NEW_VALUES, returnsBufferPct: 30, targetMinPct: 80, targetMaxPct: 80 }, deps);
+    const r = await previewMarginSettings({ ...NEW_VALUES, returnsBufferPct: 30, fxBufferPct: 3, targetMinPct: 80, targetMaxPct: 80 }, deps);
     if (!r.ok) throw new Error("debería ir bien");
     expect(r.data.minPrice).toBeNull();
     expect(r.data.breakdown).toBeNull();

@@ -357,7 +357,7 @@ export function ImportDialog({ product, onClose }: { product: ImportDialogProduc
               <h3 className="font-sans text-sm font-medium text-bc-text-primary">{t("margin.title")}</h3>
               {check ? (
                 <>
-                  <MarginBreakdown check={check} stale={!fresh} costVaries={preview.product.costVaries} />
+                  <MarginBreakdown check={check} stale={!fresh} costVaries={preview.product.costVaries} fx={preview.fx} />
                   {fresh && !check.belowMin && (
                     <p role="status" data-margin-ok className="text-sm text-bc-text-secondary">
                       {t("margin.ok", { pct: formatPct(check.netMarginPct), min: formatPct(check.minPct) })}

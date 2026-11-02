@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { parseMarginSettingsInput, parseMarginSettingsValues } from "./settingsInput";
 
 const VALID = {
-  returnsBufferPct: 6,
+  returnsBufferPct: 6, fxBufferPct: 3,
   shippingCost: 4.5,
   acquisitionCost: 0,
   targetMinPct: 15,
@@ -23,8 +23,8 @@ describe("parseMarginSettingsInput: rangos cerrados", () => {
   });
 
   test("los extremos de cada rango se aceptan", () => {
-    const lows = { returnsBufferPct: 0, shippingCost: 0, acquisitionCost: 0, targetMinPct: 0, targetMaxPct: 0, stripePct: 0, stripeFixed: 0 };
-    const highs = { returnsBufferPct: 30, shippingCost: 100, acquisitionCost: 200, targetMinPct: 80, targetMaxPct: 100, stripePct: 10, stripeFixed: 2 };
+    const lows = { returnsBufferPct: 0, fxBufferPct: 3, shippingCost: 0, acquisitionCost: 0, targetMinPct: 0, targetMaxPct: 0, stripePct: 0, stripeFixed: 0 };
+    const highs = { returnsBufferPct: 30, fxBufferPct: 3, shippingCost: 100, acquisitionCost: 200, targetMinPct: 80, targetMaxPct: 100, stripePct: 10, stripeFixed: 2 };
     expect(parseMarginSettingsInput(lows).ok).toBe(true);
     expect(parseMarginSettingsInput(highs).ok).toBe(true);
   });
@@ -63,7 +63,7 @@ describe("parseMarginSettingsInput: rangos cerrados", () => {
   });
 
   test("varios errores → todos los campos, en orden estable", () => {
-    const r = parseMarginSettingsInput({ ...VALID, returnsBufferPct: 99, stripePct: 99 });
+    const r = parseMarginSettingsInput({ ...VALID, returnsBufferPct: 99, fxBufferPct: 3, stripePct: 99 });
     expect(r).toEqual({ ok: false, fields: ["returnsBufferPct", "stripePct"] });
   });
 
@@ -80,7 +80,7 @@ describe("parseMarginSettingsInput: rangos cerrados", () => {
   });
 
   test("el error NUNCA contiene los valores enviados (sin eco)", () => {
-    const r = parseMarginSettingsInput({ ...VALID, returnsBufferPct: 77.77, note: "<script>alert(1)</script>".repeat(20) });
+    const r = parseMarginSettingsInput({ ...VALID, returnsBufferPct: 77.77, fxBufferPct: 3, note: "<script>alert(1)</script>".repeat(20) });
     const text = JSON.stringify(r);
     expect(text).not.toContain("77.77");
     expect(text).not.toContain("script");

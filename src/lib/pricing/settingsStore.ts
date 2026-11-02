@@ -35,7 +35,7 @@ export interface MarginSettingsStore {
 }
 
 const COLUMNS =
-  "id, returns_buffer_pct, shipping_cost_default, acquisition_cost, min_margin_pct, target_max_pct, stripe_pct, stripe_fixed, created_by, created_at, note";
+  "id, returns_buffer_pct, fx_buffer_pct, shipping_cost_default, acquisition_cost, min_margin_pct, target_max_pct, stripe_pct, stripe_fixed, created_by, created_at, note";
 
 type Row = Record<string, unknown>;
 
@@ -44,6 +44,7 @@ function fromRow(r: Row): MarginSettingsRecord {
     id: Number(r.id),
     values: {
       returnsBufferPct: r.returns_buffer_pct,
+      fxBufferPct: r.fx_buffer_pct,
       shippingCost: r.shipping_cost_default,
       acquisitionCost: r.acquisition_cost,
       targetMinPct: r.min_margin_pct,
@@ -98,6 +99,7 @@ export const supabaseMarginSettingsStore: MarginSettingsStore = {
       .from("margin_settings")
       .insert({
         returns_buffer_pct: row.values.returnsBufferPct,
+        fx_buffer_pct: row.values.fxBufferPct,
         shipping_cost_default: row.values.shippingCost,
         acquisition_cost: row.values.acquisitionCost,
         min_margin_pct: row.values.targetMinPct,

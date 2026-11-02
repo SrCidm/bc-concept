@@ -30,6 +30,8 @@ export type ImportErrorCode =
   | "not_eu_eligible"
   /** Coste o variantes en otra moneda que EUR. */
   | "currency_mismatch"
+  /** Coste en otra moneda y sin tipo de cambio reciente (fail-closed). */
+  | "fx_unavailable"
   /** Margen por debajo del mínimo y sin confirmación explícita. */
   | "margin_below_min"
   /** Fallo al escribir en la BD. */
@@ -56,13 +58,26 @@ export interface MarginCheckDTO {
   minPrice: number | null;
 }
 
+/** De dónde sale el coste en EUR: coste original × tipo × (1 + colchón). */
+export interface ImportFxDTO {
+  currency: string;
+  /** Coste original de la variante más cara: el que se ve en el desglose. */
+  originalCost: number;
+  rate: number;
+  rateDate: string;
+  bufferPct: number;
+  /** Falló la consulta del tipo: se usa el último guardado, de hace `ageDays` días. */
+  stale: boolean;
+  ageDays: number;
+}
+
 export interface ImportPreviewDTO {
   product: {
     supplierProductId: string;
     title: string;
     image: string | null;
     sku: string | null;
-    /** Coste de proveedor (solo admin). */
+    /** Coste de proveedor en EUR, el que usa la guarda (solo admin). */
     cost: { amount: number; currency: string };
     /** PVP recomendado por el proveedor (referencia). */
     suggestedRetail: { amount: number; currency: string } | null;
@@ -77,6 +92,8 @@ export interface ImportPreviewDTO {
     warehouse: string;
     euStock: number;
   };
+  /** Conversión aplicada si el proveedor cobra en otra moneda (null si cobra en EUR). */
+  fx: ImportFxDTO | null;
   /** PVP inicial propuesto (el recomendado o, si no hay, el mínimo redondeado a ,90). */
   suggestedPrice: number | null;
   /** Guarda al precio pedido (o al inicial); null si aún no hay precio válido. */
@@ -115,6 +132,7 @@ export const IMPORT_ERROR_STATUS: Record<ImportErrorCode, number> = {
   unsupported: 501,
   not_eu_eligible: 422,
   currency_mismatch: 422,
+  fx_unavailable: 503,
   margin_below_min: 422,
   storage_failed: 500,
 };

@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 import type { AdminDecision } from "@/lib/auth/requireAdmin";
 import { DEFAULT_MARGIN_PARAMS } from "@/lib/pricing/settings";
 import { SupplierError } from "@/lib/suppliers/errors";
+import type { FxQuote } from "@/lib/pricing/fx";
 import type { SupplierAdapter, SupplierProduct, SupplierVariant } from "@/lib/suppliers/types";
 import {
   htmlToPlainText,
@@ -672,5 +673,133 @@ describe("htmlToPlainText", () => {
     expect(htmlToPlainText(null)).toBeNull();
     expect(htmlToPlainText("<p> </p>")).toBeNull();
     expect(htmlToPlainText("a".repeat(10_000))!.length).toBeLessThanOrEqual(5_000);
+  });
+});
+
+describe("proveedor que cobra en USD (CJ)", () => {
+  const usd = (amount: number) => ({ amount, currency: "USD" });
+  const CJ: SupplierProduct = {
+    ...PRODUCT,
+    supplier: "cj",
+    supplierProductId: "2116011979176017921",
+    cost: usd(7.28),
+    suggestedRetail: usd(50.09),
+    stock: { total: 100, eu: [{ warehouse: "ES", quantity: 100, minHandlingDays: null, maxHandlingDays: null }], euTotal: 100 },
+    variants: [variant("a", 7.28, { cost: usd(7.28), stock: 60 }), variant("b", 9, { cost: usd(9), stock: 40 })],
+    origin: { productType: "SUPPLIER_SHIPPED_PRODUCT", sellerId: "seller-1", sellerName: "Vendedor SL" },
+  };
+  const QUOTE = { ok: true as const, rate: 0.89509, rateDate: "2026-10-30", ageDays: 3, stale: false };
+  const withFx = (quote: FxQuote = QUOTE) => {
+    const s = setup({ product: CJ });
+    return { ...s, deps: { ...s.deps, getFx: async () => quote } };
+  };
+
+  test("el snapshot guarda coste original, moneda, tipo, fecha, colchón y origen; price_cost en EUR", async () => {
+    const { deps, mem } = withFx();
+    const r = await importProduct("cj", { supplierProductId: CJ.supplierProductId, priceRetail: 44.9 }, deps);
+    expect(r.ok).toBe(true);
+    expect(mem.products.get(`cj:${CJ.supplierProductId}`)!.row).toMatchObject({
+      price_cost: 6.71,
+      cost_currency: "USD",
+      cost_original: 7.28,
+      fx_rate: 0.89509,
+      fx_rate_date: "2026-10-30",
+      fx_buffer_pct: 3,
+      supplier_product_type: "SUPPLIER_SHIPPED_PRODUCT",
+      supplier_seller_id: "seller-1",
+      supplier_seller_name: "Vendedor SL",
+      currency: "EUR",
+      warehouse: "ES",
+    });
+    const saved = mem.variants.map((v) => [v.supplier_variant_id, v.price_cost, v.cost_original]);
+    expect(saved).toEqual([["a", 6.71, 7.28], ["b", 8.3, 9]]);
+  });
+
+  test("la guarda usa el coste en EUR de la variante más cara, con colchón", async () => {
+    const { deps } = withFx();
+    const r = await previewImport("cj", { supplierProductId: CJ.supplierProductId, priceRetail: 44.9 }, deps);
+    if (!r.ok) throw new Error(r.code);
+    expect(r.data.check?.cost).toBe(8.3); // 9 USD × 0,89509 × 1,03
+    expect(r.data.product.worstCaseCost).toBe(8.3);
+    expect(r.data.product.minCost).toBe(6.71);
+    expect(r.data.product.cost).toEqual({ amount: 6.71, currency: "EUR" });
+    expect(r.data.fx).toEqual({ currency: "USD", originalCost: 9, rate: 0.89509, rateDate: "2026-10-30", bufferPct: 3, stale: false, ageDays: 3 });
+  });
+
+  test("el PVP sugerido se convierte al tipo oficial, sin colchón", async () => {
+    const { deps } = withFx();
+    const r = await previewImport("cj", { supplierProductId: CJ.supplierProductId }, deps);
+    if (!r.ok) throw new Error(r.code);
+    expect(r.data.product.suggestedRetail).toEqual({ amount: 44.84, currency: "EUR" });
+    expect(r.data.suggestedPrice).toBe(44.84);
+  });
+
+  test("el colchón sale de los ajustes", async () => {
+    const { deps } = withFx();
+    const r = await previewImport("cj", { supplierProductId: CJ.supplierProductId, priceRetail: 44.9 }, {
+      ...deps,
+      getParams: async () => ({ ...DEFAULT_MARGIN_PARAMS, fxBufferPct: 10 }),
+    });
+    if (!r.ok) throw new Error(r.code);
+    expect(r.data.check?.cost).toBe(8.86); // 9 × 0,89509 × 1,10
+    expect(r.data.fx?.bufferPct).toBe(10);
+  });
+
+  test("sin tipo de cambio: fail-closed en preview y al guardar, sin escribir", async () => {
+    const { deps, mem } = withFx({ ok: false });
+    const input = { supplierProductId: CJ.supplierProductId, priceRetail: 44.9, confirmBelowMargin: true };
+    expect(await previewImport("cj", input, deps)).toEqual({ ok: false, code: "fx_unavailable" });
+    expect(await importProduct("cj", input, deps)).toEqual({ ok: false, code: "fx_unavailable" });
+    expect(mem.calls).toEqual([]);
+  });
+
+  test("tipo guardado porque falló la consulta: se puede importar y el panel lo sabe", async () => {
+    const { deps } = withFx({ ...QUOTE, rateDate: "2026-10-28", ageDays: 5, stale: true });
+    const r = await previewImport("cj", { supplierProductId: CJ.supplierProductId, priceRetail: 44.9 }, deps);
+    if (!r.ok) throw new Error(r.code);
+    expect(r.data.fx).toMatchObject({ stale: true, ageDays: 5, rateDate: "2026-10-28" });
+  });
+
+  test("sin stock UE no se pide el tipo de cambio", async () => {
+    let asked = false;
+    const s = setup({ product: { ...CJ, stock: { total: 5, eu: [], euTotal: 0 } } });
+    const r = await previewImport("cj", { supplierProductId: CJ.supplierProductId }, {
+      ...s.deps,
+      getFx: async () => {
+        asked = true;
+        return QUOTE;
+      },
+    });
+    expect(r).toEqual({ ok: false, code: "not_eu_eligible" });
+    expect(asked).toBe(false);
+  });
+
+  test("moneda sin conversión: currency_mismatch", async () => {
+    const gbp = { amount: 5, currency: "GBP" };
+    const s = setup({ product: { ...CJ, cost: gbp, variants: [variant("a", 5, { cost: gbp })] } });
+    const r = await previewImport("cj", { supplierProductId: CJ.supplierProductId }, { ...s.deps, getFx: async () => QUOTE });
+    expect(r).toEqual({ ok: false, code: "currency_mismatch" });
+  });
+
+  test("proveedor en EUR: nunca pide tipo y el snapshot queda sin conversión", async () => {
+    let asked = false;
+    const s = setup({ product: PRODUCT });
+    const r = await importProduct("bigbuy", INPUT, {
+      ...s.deps,
+      getFx: async () => {
+        asked = true;
+        return QUOTE;
+      },
+    });
+    expect(r.ok).toBe(true);
+    expect(asked).toBe(false);
+    expect(s.mem.products.get("bigbuy:1001")!.row).toMatchObject({
+      price_cost: 18.5,
+      cost_currency: "EUR",
+      cost_original: 18.5,
+      fx_rate: null,
+      fx_rate_date: null,
+      fx_buffer_pct: null,
+    });
   });
 });

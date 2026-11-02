@@ -8,6 +8,15 @@ mock.module("server-only", () => ({}));
 // .env.local, así que sin esto la fuente de ajustes consultaría producción).
 // Por defecto no hay filas guardados → entorno/valores por defecto. Escribir sin
 // inyectar un almacén propio es un error del test.
+mock.module("@/lib/pricing/fxStore", () => ({
+  supabaseFxStore: {
+    latest: async () => null,
+    insert: async () => {
+      throw new Error("test: inyecta un FxStore en memoria para guardar tipos de cambio");
+    },
+  },
+}));
+
 mock.module("@/lib/pricing/settingsStore", () => ({
   supabaseMarginSettingsStore: {
     latest: async () => null,

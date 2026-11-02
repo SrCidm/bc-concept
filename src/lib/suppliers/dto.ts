@@ -1,4 +1,5 @@
 import "server-only";
+import { DEFAULT_FX_BUFFER_PCT, usdToEur, usdToEurCost, type FxQuote } from "@/lib/pricing/fx";
 import {
   computeMargin,
   type MarginBreakdown,
@@ -22,15 +23,29 @@ import type { Money, ProductPage, SupplierProduct, SupplierVariant } from "./typ
 
 export type { AdminVariantDTO, AdminProductDTO, AdminProductPageDTO } from "./dto.types";
 
+/** Coste en EUR para el margen. Sin tipo de cambio: null (nunca un margen inventado). */
+function costInEur(cost: Money, params: MarginParams | null, fx: FxQuote | null): number | null {
+  if (cost.currency === "EUR") return cost.amount;
+  if (cost.currency !== "USD" || !fx?.ok) return null;
+  return usdToEurCost(cost.amount, fx.rate, params?.fxBufferPct ?? DEFAULT_FX_BUFFER_PCT);
+}
+
 function deriveMargin(
   cost: Money,
   retail: Money | null,
-  params: MarginParams | null
+  params: MarginParams | null,
+  fx: FxQuote | null
 ): { margin: MarginBreakdown | null; marginReason: MarginReason | null } {
   if (!params) return { margin: null, marginReason: "params_not_configured" };
   if (!retail) return { margin: null, marginReason: "no_suggested_retail" };
   if (retail.currency !== cost.currency) return { margin: null, marginReason: "currency_mismatch" };
-  const margin = computeMargin(cost.amount, retail.amount, params);
+  if (cost.currency !== "EUR" && cost.currency !== "USD") return { margin: null, marginReason: "currency_mismatch" };
+
+  const eur = costInEur(cost, params, fx);
+  if (eur === null) return { margin: null, marginReason: "fx_unavailable" };
+  // El PVP de referencia va al tipo oficial: el colchón solo protege el coste.
+  const retailEur = retail.currency === "EUR" ? retail.amount : usdToEur(retail.amount, (fx as { rate: number }).rate);
+  const margin = computeMargin(eur, retailEur, params);
   return margin
     ? { margin, marginReason: null }
     : { margin: null, marginReason: "invalid_input" };
@@ -49,9 +64,11 @@ function variantDTO(v: SupplierVariant): AdminVariantDTO {
   };
 }
 
+/** `fx`: necesario si el proveedor cobra en otra moneda; sin él no hay margen (fail-closed). */
 export function toAdminProductDTO(
   p: SupplierProduct,
-  params: MarginParams | null
+  params: MarginParams | null,
+  fx: FxQuote | null = null
 ): AdminProductDTO {
   return {
     supplier: p.supplier,
@@ -64,8 +81,9 @@ export function toAdminProductDTO(
     category: p.category,
     weightKg: p.weightKg,
     cost: p.cost,
+    costEur: costInEur(p.cost, params, fx),
     suggestedRetail: p.suggestedRetail,
-    ...deriveMargin(p.cost, p.suggestedRetail, params),
+    ...deriveMargin(p.cost, p.suggestedRetail, params, fx),
     stock: { total: p.stock.total, euTotal: p.stock.euTotal, eu: p.stock.eu },
     delivery: p.delivery,
     variants: p.variants.map(variantDTO),
@@ -74,10 +92,11 @@ export function toAdminProductDTO(
 
 export function toAdminPageDTO(
   page: ProductPage,
-  params: MarginParams | null
+  params: MarginParams | null,
+  fx: FxQuote | null = null
 ): AdminProductPageDTO {
   return {
-    items: page.items.map((p) => toAdminProductDTO(p, params)),
+    items: page.items.map((p) => toAdminProductDTO(p, params, fx)),
     page: page.page,
     pageSize: page.pageSize,
     hasMore: page.hasMore,

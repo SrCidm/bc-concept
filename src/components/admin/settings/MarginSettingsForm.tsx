@@ -21,7 +21,7 @@ const DEBOUNCE_MS = 300;
 
 const GROUPS: Array<{ key: "margin" | "costs" | "payments"; fields: MarginField[] }> = [
   { key: "margin", fields: ["targetMinPct", "targetMaxPct"] },
-  { key: "costs", fields: ["shippingCost", "acquisitionCost", "returnsBufferPct"] },
+  { key: "costs", fields: ["shippingCost", "acquisitionCost", "returnsBufferPct", "fxBufferPct"] },
   { key: "payments", fields: ["stripePct", "stripeFixed"] },
 ];
 

@@ -64,7 +64,7 @@ const post = (body: unknown, headers: Record<string, string> = same) =>
   });
 
 const VALUES = {
-  returnsBufferPct: 6,
+  returnsBufferPct: 6, fxBufferPct: 3,
   shippingCost: 4.5,
   acquisitionCost: 0,
   targetMinPct: 15,
@@ -108,7 +108,7 @@ describe("guardar", () => {
 
   test("fuera de rango → 400 con los nombres de campo y sin eco de los valores; nada escrito", async () => {
     const { save } = await load();
-    const r = await save.POST(post({ ...VALUES, returnsBufferPct: 66.66, stripePct: 12 }));
+    const r = await save.POST(post({ ...VALUES, returnsBufferPct: 66.66, fxBufferPct: 3, stripePct: 12 }));
     expect(r.status).toBe(400);
     const d = await r.json();
     expect(d).toEqual({ error: { code: "invalid_request", fields: ["returnsBufferPct", "stripePct"] } });

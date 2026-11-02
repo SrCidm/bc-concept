@@ -1,15 +1,17 @@
 import "server-only";
 import { resolveAdmin, type AdminDecision } from "@/lib/auth/requireAdmin";
+import { DEFAULT_FX_BUFFER_PCT, fxSource, usdToEur, usdToEurCost, type FxQuote } from "@/lib/pricing/fx";
 import { evaluateMarginGuard, minimumPrice, worstCaseCost, type MarginCheck } from "@/lib/pricing/guard";
 import type { MarginParams } from "@/lib/pricing/margin";
 import { marginSettings } from "@/lib/pricing/settings";
 import { isSupplierError } from "@/lib/suppliers/errors";
-import { EU_COUNTRY_CODES } from "@/lib/suppliers/bigbuy/warehouses";
+import { EU_COUNTRY_CODES } from "@/lib/suppliers/eu";
 import { getSupplierAdapter, isMockEnabled } from "@/lib/suppliers/registry";
 import type { SupplierAdapter, SupplierId, SupplierProduct } from "@/lib/suppliers/types";
 import {
   isStoreCategory,
   type ImportErrorCode,
+  type ImportFxDTO,
   type ImportPreviewDTO,
   type ImportResultDTO,
   type MarginCheckDTO,
@@ -26,6 +28,8 @@ import {
  *   título y slug nunca vienen del cliente.
  * · La guarda de margen (`lib/pricing/guard`) se aplica en el servidor: por debajo
  *   del mínimo hace falta `confirmBelowMargin === true`.
+ * · El coste se guarda SIEMPRE en EUR (`price_cost`), con su snapshot: coste
+ *   original, moneda, tipo, fecha y colchón. Sin tipo reciente no se importa.
  * · Solo almacén UE y fail-closed: un almacén desconocido NO cuenta (el listado es
  *   más permisivo; ver la deuda en bigbuy/warehouses.ts).
  * · Idempotente: si (supplier, supplier_product_id) ya existe no se escribe ni se
@@ -40,8 +44,17 @@ export interface ProductRow {
   supplier_product_id: string;
   title: string;
   description: string | null;
+  /** Siempre EUR: el coste que usa la guarda. */
   price_cost: number;
+  /** Moneda del coste original del proveedor. */
   cost_currency: string;
+  cost_original: number;
+  fx_rate: number | null;
+  fx_rate_date: string | null;
+  fx_buffer_pct: number | null;
+  supplier_product_type: string | null;
+  supplier_seller_id: string | null;
+  supplier_seller_name: string | null;
   price_retail: number;
   currency: "EUR";
   images: string[];
@@ -57,7 +70,9 @@ export interface VariantRow {
   supplier_variant_id: string;
   sku: string;
   name: string;
+  /** Siempre EUR. */
   price_cost: number;
+  cost_original: number;
   price_retail: number;
   inventory: number;
   attributes: Record<string, string>;
@@ -81,6 +96,7 @@ export interface ImportDeps {
   resolve?: () => Promise<AdminDecision>;
   getAdapter?: () => SupplierAdapter;
   getParams?: () => Promise<MarginParams>;
+  getFx?: () => Promise<FxQuote>;
   store?: ProductStore;
   isMock?: () => boolean;
   now?: () => number;
@@ -165,6 +181,18 @@ function roundUpToNinety(price: number): number {
   return Math.round(candidate * 100) / 100;
 }
 
+function toFxDTO(currency: string, originalCost: number, fx: NonNullable<Assessment["fx"]>): ImportFxDTO {
+  return { currency, originalCost, rate: fx.rate, rateDate: fx.rateDate, bufferPct: fx.bufferPct, stale: fx.stale, ageDays: fx.ageDays };
+}
+
+/** PVP recomendado en EUR, al tipo oficial (sin colchón: es una referencia, no un coste). */
+function suggestedRetailEur(product: SupplierProduct, rate: number | null): { amount: number; currency: "EUR" } | null {
+  const rrp = product.suggestedRetail;
+  if (!rrp) return null;
+  if (rrp.currency === "EUR") return { amount: rrp.amount, currency: "EUR" };
+  return rate !== null && CONVERTIBLE.has(rrp.currency) ? { amount: usdToEur(rrp.amount, rate), currency: "EUR" } : null;
+}
+
 function toCheckDTO(c: MarginCheck): MarginCheckDTO {
   return { ...c.breakdown, minPct: c.minPct, belowMin: c.belowMin, loss: c.loss, minPrice: c.minPrice };
 }
@@ -172,16 +200,35 @@ function toCheckDTO(c: MarginCheck): MarginCheckDTO {
 interface Assessment {
   warehouse: string;
   euStock: number;
-  /** Coste de referencia de la guarda: el más alto entre producto y variantes. */
+  /** Coste de referencia de la guarda, en EUR: el más alto entre producto y variantes. */
   guardCost: number;
-  /** Coste más bajo entre producto y variantes (para mostrar el rango). */
+  /** Coste más bajo entre producto y variantes, en EUR (para mostrar el rango). */
   minCost: number;
+  /** Coste original de la variante más cara. */
+  worstOriginal: number;
+  /** Cómo se pasa un coste original a EUR. */
+  toEur: (amount: number) => number;
+  /** Tipo aplicado (null si el proveedor cobra en EUR). */
+  fx: { rate: number; rateDate: string; bufferPct: number; stale: boolean; ageDays: number } | null;
 }
 
-/** Elegibilidad para importar: EUR y almacén UE EXPLÍCITO con stock (fail-closed). */
-function assess(product: SupplierProduct): { ok: true; value: Assessment } | { ok: false; code: ImportErrorCode } {
-  const currencies = [product.cost.currency, ...product.variants.map((v) => v.cost.currency)];
-  if (currencies.some((c) => c !== "EUR")) return { ok: false, code: "currency_mismatch" };
+/** Monedas que se saben convertir (además de EUR). */
+const CONVERTIBLE = new Set(["USD"]);
+
+/**
+ * Elegibilidad para importar: una sola moneda (EUR o convertible) y almacén UE
+ * EXPLÍCITO con stock. El stock se mira primero: sin él no hace falta el tipo.
+ */
+async function assess(
+  product: SupplierProduct,
+  params: MarginParams,
+  deps: ImportDeps
+): Promise<{ ok: true; value: Assessment } | { ok: false; code: ImportErrorCode }> {
+  const currency = product.cost.currency;
+  const currencies = [currency, ...product.variants.map((v) => v.cost.currency)];
+  if (currencies.some((c) => c !== currency) || (currency !== "EUR" && !CONVERTIBLE.has(currency))) {
+    return { ok: false, code: "currency_mismatch" };
+  }
 
   const eligible = product.stock.eu.filter(
     (e) => e.warehouse !== null && EU_COUNTRY_CODES.has(e.warehouse) && e.quantity > 0
@@ -191,16 +238,30 @@ function assess(product: SupplierProduct): { ok: true; value: Assessment } | { o
   let best = eligible[0];
   for (const e of eligible) if (e.quantity > best.quantity) best = e;
 
+  let toEur = (amount: number) => amount;
+  let fx: Assessment["fx"] = null;
+  if (currency !== "EUR") {
+    const quote = await (deps.getFx ?? (() => fxSource().get()))();
+    if (!quote.ok) return { ok: false, code: "fx_unavailable" };
+    const bufferPct = params.fxBufferPct ?? DEFAULT_FX_BUFFER_PCT;
+    toEur = (amount) => usdToEurCost(amount, quote.rate, bufferPct);
+    fx = { rate: quote.rate, rateDate: quote.rateDate, bufferPct, stale: quote.stale, ageDays: quote.ageDays };
+  }
+
   const variantCosts = product.variants.map((v) => v.cost.amount);
   const validVariantCosts = variantCosts.filter((c) => Number.isFinite(c) && c >= 0);
+  const worstOriginal = worstCaseCost(product.cost.amount, variantCosts);
 
   return {
     ok: true,
     value: {
       warehouse: best.warehouse as string,
       euStock: eligible.reduce((n, e) => n + e.quantity, 0),
-      guardCost: worstCaseCost(product.cost.amount, variantCosts),
-      minCost: Math.min(product.cost.amount, ...validVariantCosts),
+      guardCost: toEur(worstOriginal),
+      minCost: toEur(Math.min(product.cost.amount, ...validVariantCosts)),
+      worstOriginal,
+      toEur,
+      fx,
     },
   };
 }
@@ -324,7 +385,8 @@ function buildRows(
           supplier_variant_id: v.supplierVariantId,
           sku: v.sku ?? `${base}-${v.supplierVariantId}`,
           name: v.name,
-          price_cost: v.cost.amount,
+          price_cost: a.toEur(v.cost.amount),
+          cost_original: v.cost.amount,
           price_retail: price,
           inventory: v.stock,
           attributes: v.attributes,
@@ -337,7 +399,8 @@ function buildRows(
             supplier_variant_id: product.supplierProductId,
             sku: base,
             name: product.title,
-            price_cost: product.cost.amount,
+            price_cost: a.toEur(product.cost.amount),
+            cost_original: product.cost.amount,
             price_retail: price,
             inventory: a.euStock,
             attributes: {},
@@ -351,8 +414,15 @@ function buildRows(
       supplier_product_id: product.supplierProductId,
       title: product.title.trim().slice(0, 200),
       description: htmlToPlainText(product.description),
-      price_cost: product.cost.amount,
+      price_cost: a.toEur(product.cost.amount),
       cost_currency: product.cost.currency,
+      cost_original: product.cost.amount,
+      fx_rate: a.fx?.rate ?? null,
+      fx_rate_date: a.fx?.rateDate ?? null,
+      fx_buffer_pct: a.fx?.bufferPct ?? null,
+      supplier_product_type: product.origin?.productType ?? null,
+      supplier_seller_id: product.origin?.sellerId ?? null,
+      supplier_seller_name: product.origin?.sellerName ?? null,
       price_retail: price,
       currency: "EUR",
       images: product.images,
@@ -402,14 +472,15 @@ export async function previewImport(
   try {
     const product = await loadProduct(supplier, input.supplierProductId, deps);
     if (!product) return { ok: false, code: "not_found" };
-    const a = assess(product);
+    const params = await (deps.getParams ?? (() => marginSettings().get()))();
+    const a = await assess(product, params, deps);
     if (!a.ok) return { ok: false, code: a.code };
 
-    const params = await (deps.getParams ?? (() => marginSettings().get()))();
     const minPrice = minimumPrice(a.value.guardCost, params);
-    const rrp = product.suggestedRetail;
+    const fx = a.value.fx;
+    const rrp = suggestedRetailEur(product, fx?.rate ?? null);
     const suggestedPrice =
-      rrp && rrp.currency === "EUR" && rrp.amount > 0
+      rrp && rrp.amount > 0
         ? rrp.amount
         : minPrice !== null
           ? roundUpToNinety(minPrice)
@@ -434,8 +505,8 @@ export async function previewImport(
           title: product.title,
           image: product.images[0] ?? null,
           sku: product.sku,
-          cost: { amount: product.cost.amount, currency: product.cost.currency },
-          suggestedRetail: rrp ? { amount: rrp.amount, currency: rrp.currency } : null,
+          cost: { amount: a.value.toEur(product.cost.amount), currency: "EUR" },
+          suggestedRetail: rrp,
           variantCount: product.variants.length,
           minCost: a.value.minCost,
           worstCaseCost: a.value.guardCost,
@@ -444,6 +515,7 @@ export async function previewImport(
           warehouse: a.value.warehouse,
           euStock: a.value.euStock,
         },
+        fx: fx ? toFxDTO(product.cost.currency, a.value.worstOriginal, fx) : null,
         suggestedPrice,
         check: check ? toCheckDTO(check) : null,
         alreadyImported,
@@ -472,10 +544,10 @@ export async function importProduct(
   try {
     const product = await loadProduct(supplier, input.supplierProductId, deps);
     if (!product) return { ok: false, code: "not_found" };
-    const a = assess(product);
+    const params = await (deps.getParams ?? (() => marginSettings().get()))();
+    const a = await assess(product, params, deps);
     if (!a.ok) return { ok: false, code: a.code };
 
-    const params = await (deps.getParams ?? (() => marginSettings().get()))();
     const check = evaluateMarginGuard(a.value.guardCost, price, params);
     if (!check) return { ok: false, code: "bad_response" }; // coste no válido
     const checkDTO = toCheckDTO(check);

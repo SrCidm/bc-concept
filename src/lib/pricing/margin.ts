@@ -33,6 +33,8 @@ export interface MarginParams {
   returnsBufferPct: number;
   /** Coste de adquisición (ads) por pedido. Opcional: 0 si no se informa. */
   acquisitionCost?: number;
+  /** Colchón sobre el tipo oficial al convertir costes en otra moneda, en %. Opcional: 3 si no se informa. */
+  fxBufferPct?: number;
   /** Objetivo de margen neto, en % de ingresos netos. `targetMinPct` es el mínimo de la guarda. */
   targetMinPct: number;
   targetMaxPct: number;
@@ -67,6 +69,7 @@ export type MarginReason =
   | "params_not_configured"
   | "no_suggested_retail"
   | "currency_mismatch"
+  | "fx_unavailable"
   | "invalid_input";
 
 const round2 = (n: number) => Math.round(n * 100) / 100;

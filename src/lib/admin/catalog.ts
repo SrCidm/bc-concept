@@ -1,5 +1,6 @@
 import "server-only";
 import { resolveAdmin, type AdminDecision } from "@/lib/auth/requireAdmin";
+import { fxSource, type FxQuote } from "@/lib/pricing/fx";
 import type { MarginParams } from "@/lib/pricing/margin";
 import { marginSettings } from "@/lib/pricing/settings";
 import { toAdminPageDTO } from "@/lib/suppliers/dto";
@@ -42,6 +43,7 @@ export interface AdminCatalogDeps {
   resolve?: () => Promise<AdminDecision>;
   getAdapter?: () => SupplierAdapter;
   getMarginParams?: () => Promise<MarginParams | null>;
+  getFx?: () => Promise<FxQuote>;
   isMock?: () => boolean;
 }
 
@@ -71,9 +73,12 @@ export async function listAdminCatalog(
       inStockOnly: query.inStockOnly,
     });
     const params = await (deps.getMarginParams ?? (() => marginSettings().get()))();
+    // El tipo de cambio solo se pide si hace falta (BigBuy cobra en EUR).
+    const needsFx = page.items.some((p) => p.cost.currency !== "EUR");
+    const fx = needsFx ? await (deps.getFx ?? (() => fxSource().get()))() : null;
     return {
       ok: true,
-      data: toAdminPageDTO(page, params),
+      data: toAdminPageDTO(page, params, fx),
       source: (deps.isMock ?? isMockEnabled)() ? "mock" : "live",
     };
   } catch (e) {

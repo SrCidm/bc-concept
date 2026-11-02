@@ -1,7 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import type { MarginCheckDTO } from "@/lib/admin/import.types";
+import type { ImportFxDTO, MarginCheckDTO } from "@/lib/admin/import.types";
 import { costRowLabelKey } from "./costDisplay";
 import { formatMoney } from "./format";
 
@@ -9,6 +9,9 @@ const pctFormat = new Intl.NumberFormat("es-ES", { minimumFractionDigits: 1, max
 export const formatPct = (n: number) => pctFormat.format(n);
 
 const eur = (n: number) => formatMoney({ amount: n, currency: "EUR" });
+const rateFormat = new Intl.NumberFormat("es-ES", { minimumFractionDigits: 4, maximumFractionDigits: 6 });
+const amountFormat = new Intl.NumberFormat("es-ES", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const bufferFormat = new Intl.NumberFormat("es-ES", { maximumFractionDigits: 2 });
 
 /**
  * Desglose de margen. SOLO muestra lo que calculó el servidor (`MarginCheckDTO`):
@@ -18,11 +21,14 @@ export function MarginBreakdown({
   check,
   stale,
   costVaries,
+  fx,
 }: {
   check: MarginCheckDTO;
   stale: boolean;
   /** Hay variantes con costes distintos: la fila de coste es la de la variante más cara. */
   costVaries: boolean;
+  /** Conversión aplicada: la fila de coste explica de dónde sale el importe en EUR. */
+  fx: ImportFxDTO | null;
 }) {
   const t = useTranslations("admin.import.dialog.margin.rows");
 
@@ -30,7 +36,18 @@ export function MarginBreakdown({
     { key: "price", label: t("price"), value: eur(check.price) },
     { key: "vat", label: t("vat"), value: `− ${eur(check.vat)}` },
     { key: "net", label: t("net"), value: eur(check.netRevenue), strong: true },
-    { key: "cost", label: t(costRowLabelKey(costVaries)), value: `− ${eur(check.cost)}` },
+    {
+      key: "cost",
+      label: fx
+        ? t("costFx", {
+            currency: fx.currency,
+            amount: amountFormat.format(fx.originalCost),
+            rate: rateFormat.format(fx.rate),
+            buffer: bufferFormat.format(fx.bufferPct),
+          })
+        : t(costRowLabelKey(costVaries)),
+      value: `− ${eur(check.cost)}`,
+    },
     { key: "shipping", label: t("shipping"), value: `− ${eur(check.shipping)}` },
     { key: "stripe", label: t("stripe"), value: `− ${eur(check.stripeFee)}` },
     { key: "returns", label: t("returns"), value: `− ${eur(check.returnsBuffer)}` },
@@ -60,6 +77,11 @@ export function MarginBreakdown({
           {eur(check.netMargin)} · {formatPct(check.netMarginPct)} %
         </dd>
       </div>
+      {fx?.stale && (
+        <p role="status" className="pt-2 text-xs text-bc-text-secondary">
+          {t("fxStale", { days: fx.ageDays })}
+        </p>
+      )}
     </dl>
   );
 }

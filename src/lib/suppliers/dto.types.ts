@@ -28,7 +28,10 @@ export interface AdminProductDTO {
   images: string[];
   category: string | null;
   weightKg: number | null;
+  /** Coste original del proveedor, en su moneda. */
   cost: Money;
+  /** Coste en EUR que usa el margen (con colchón de cambio); null sin tipo de cambio. */
+  costEur: number | null;
   suggestedRetail: Money | null;
   margin: MarginBreakdown | null;
   /** Por qué no hay margen (null si lo hay). */

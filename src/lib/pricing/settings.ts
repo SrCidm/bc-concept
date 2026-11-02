@@ -1,5 +1,6 @@
 import "server-only";
 import type { MarginValuesDTO } from "@/lib/admin/settings.types";
+import { DEFAULT_FX_BUFFER_PCT } from "./fx";
 import type { MarginParams } from "./margin";
 import { parseMarginSettingsValues } from "./settingsInput";
 import type { MarginSettingsRecord, MarginSettingsStore } from "./settingsStore";
@@ -27,6 +28,7 @@ export const VAT_PCT = 21;
  *  · Envío medio a cargo de B&C 4,50 €/pedido (respaldo: en 3.4 vendrá por
  *    producto desde BigBuy).
  *  · Coste de adquisición (ads) 0 € por pedido.
+ *  · Colchón de cambio 3 % sobre el tipo oficial (el banco o PayPal cobran peor).
  *  · Margen neto mínimo 15 % (guarda) y objetivo máximo 35 % (informativo):
  *    "Objetivo neto 15-35 %" del CLAUDE.md.
  */
@@ -37,6 +39,7 @@ export const DEFAULT_MARGIN_PARAMS: Readonly<MarginParams> = Object.freeze({
   stripeFixed: 0.25,
   returnsBufferPct: 6,
   acquisitionCost: 0,
+  fxBufferPct: DEFAULT_FX_BUFFER_PCT,
   targetMinPct: 15,
   targetMaxPct: 35,
 });
@@ -55,6 +58,7 @@ const PARAM_ENV: Record<EditableKey, string> = {
   stripeFixed: "MARGIN_STRIPE_FIXED_EUR",
   returnsBufferPct: "MARGIN_RETURNS_BUFFER_PCT",
   acquisitionCost: "MARGIN_ACQUISITION_EUR",
+  fxBufferPct: "MARGIN_FX_BUFFER_PCT",
   targetMinPct: "MARGIN_TARGET_MIN_PCT",
   targetMaxPct: "MARGIN_TARGET_MAX_PCT",
 };
@@ -62,6 +66,7 @@ const PARAM_ENV: Record<EditableKey, string> = {
 const PERCENT_KEYS: ReadonlySet<EditableKey> = new Set<EditableKey>([
   "stripePct",
   "returnsBufferPct",
+  "fxBufferPct",
   "targetMinPct",
   "targetMaxPct",
 ]);
@@ -114,6 +119,7 @@ export function toMarginValues(p: MarginParams): MarginValuesDTO {
     returnsBufferPct: p.returnsBufferPct,
     shippingCost: p.shippingCost,
     acquisitionCost: p.acquisitionCost ?? 0,
+    fxBufferPct: p.fxBufferPct ?? DEFAULT_FX_BUFFER_PCT,
     targetMinPct: p.targetMinPct,
     targetMaxPct: p.targetMaxPct,
     stripePct: p.stripePct,

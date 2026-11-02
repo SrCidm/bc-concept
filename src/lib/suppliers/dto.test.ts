@@ -65,6 +65,22 @@ describe("DTO admin (incluye coste y margen, a propósito, tras requireAdmin)", 
     ).toBe("currency_mismatch");
   });
 
+  test("en USD: coste y PVP de referencia en EUR; sin tipo no hay margen (fail-closed)", () => {
+    const usd = { ...product, cost: { amount: 20, currency: "USD" }, suggestedRetail: { amount: 60, currency: "USD" } };
+    const quote = { ok: true as const, rate: 0.9, rateDate: "2026-10-30", ageDays: 3, stale: false };
+    const dto = toAdminProductDTO(usd, { ...params, fxBufferPct: 3 }, quote);
+    expect(dto.cost).toEqual({ amount: 20, currency: "USD" });
+    expect(dto.costEur).toBe(18.54); // 20 × 0,9 × 1,03
+    expect(dto.margin?.cost).toBe(18.54);
+    expect(dto.margin?.price).toBe(54); // 60 × 0,9, sin colchón
+    for (const fx of [null, { ok: false as const }]) {
+      const none = toAdminProductDTO(usd, params, fx);
+      expect(none.margin).toBeNull();
+      expect(none.marginReason).toBe("fx_unavailable");
+      expect(none.costEur).toBeNull();
+    }
+  });
+
   test("no filtra credenciales ni campos internos del proveedor", () => {
     const json = JSON.stringify(toAdminPageDTO({ items: [product], page: 1, pageSize: 24, hasMore: false, fetched: 1 }, params));
     expect(json).not.toMatch(/apiKey|api_key|authorization|bearer/i);
