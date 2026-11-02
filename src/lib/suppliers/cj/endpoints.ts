@@ -19,6 +19,7 @@ export const CJ_ENDPOINTS = {
   products: "/product/list",
   product: "/product/query",
   inventory: "/product/stock/getInventoryByPid",
+  freight: "/logistic/freightCalculate",
 } as const;
 
 /** Almacenes que se listan en el panel. El coste de envío se comprueba aparte. */

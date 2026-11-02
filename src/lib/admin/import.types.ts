@@ -32,6 +32,8 @@ export type ImportErrorCode =
   | "currency_mismatch"
   /** Coste en otra moneda y sin tipo de cambio reciente (fail-closed). */
   | "fx_unavailable"
+  /** El proveedor no tiene ruta de envío a España desde un almacén UE con stock. */
+  | "no_shipping_route"
   /** Margen por debajo del mínimo y sin confirmación explícita. */
   | "margin_below_min"
   /** Fallo al escribir en la BD. */
@@ -71,6 +73,17 @@ export interface ImportFxDTO {
   ageDays: number;
 }
 
+/** Flete real del proveedor (null: se usa el envío medio de los ajustes). */
+export interface ImportShippingDTO {
+  /** Coste en EUR que usa la guarda. */
+  cost: number;
+  method: string;
+  /** Almacén de salida. */
+  origin: string;
+  minDays: number | null;
+  maxDays: number | null;
+}
+
 export interface ImportPreviewDTO {
   product: {
     supplierProductId: string;
@@ -94,6 +107,7 @@ export interface ImportPreviewDTO {
   };
   /** Conversión aplicada si el proveedor cobra en otra moneda (null si cobra en EUR). */
   fx: ImportFxDTO | null;
+  shipping: ImportShippingDTO | null;
   /** PVP inicial propuesto (el recomendado o, si no hay, el mínimo redondeado a ,90). */
   suggestedPrice: number | null;
   /** Guarda al precio pedido (o al inicial); null si aún no hay precio válido. */
@@ -133,6 +147,7 @@ export const IMPORT_ERROR_STATUS: Record<ImportErrorCode, number> = {
   not_eu_eligible: 422,
   currency_mismatch: 422,
   fx_unavailable: 503,
+  no_shipping_route: 422,
   margin_below_min: 422,
   storage_failed: 500,
 };

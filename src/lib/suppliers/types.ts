@@ -32,6 +32,20 @@ export interface SupplierVariant {
   stock: number;
   attributes: Record<string, string>;
   image: string | null;
+  weightKg?: number | null;
+  /** Existencias por almacén UE, si el proveedor las desglosa. */
+  euStockByWarehouse?: Record<string, number>;
+}
+
+/** Ruta de envío calculada por el proveedor para un producto y un destino. */
+export interface ShippingRoute {
+  /** Almacén de salida (ISO alpha-2). */
+  origin: string;
+  method: string;
+  /** Coste de envío, en la moneda del proveedor. */
+  cost: Money;
+  minDays: number | null;
+  maxDays: number | null;
 }
 
 export interface SupplierProduct {
@@ -104,4 +118,9 @@ export interface SupplierAdapter {
     id: string,
     opts?: Pick<ListProductsParams, "lang">
   ): Promise<SupplierProduct | null>;
+  /**
+   * Flete real hasta `destination` (ISO alpha-2). null = no hay ruta. Sin este
+   * método (BigBuy) la guarda usa el envío medio de los ajustes.
+   */
+  getShippingRoute?(product: SupplierProduct, destination: string): Promise<ShippingRoute | null>;
 }

@@ -2,11 +2,11 @@ import "server-only";
 import { createSupabaseTokenStore, resolveApiKey, type TokenStore } from "../credentials";
 import { SupplierError, isSupplierError } from "../errors";
 import { list, rec, num } from "../raw";
-import type { AuthResult, ListProductsParams, ProductPage, SupplierAdapter, SupplierProduct } from "../types";
+import type { AuthResult, ListProductsParams, ProductPage, ShippingRoute, SupplierAdapter, SupplierProduct } from "../types";
 import { createCjAuth, type CjAuthState } from "./auth";
 import { createCjClient, isTokenRejected, type CjClientDeps, type CjRequest } from "./client";
 import { CJ_ENDPOINTS, CJ_LISTED_WAREHOUSES } from "./endpoints";
-import { mapCjListItem, mapCjProduct } from "./mappers";
+import { mapCjListItem, mapCjProduct, parseCjRoutes } from "./mappers";
 
 export interface CjDeps extends CjClientDeps {
   /** Por defecto: BD (supplier_credentials) y, si no hay, CJ_API_KEY. */
@@ -20,6 +20,8 @@ const DEFAULT_PAGE_SIZE = 24;
 const MAX_PAGE_SIZE = 100;
 const ID_PATTERN = /^[A-Za-z0-9_-]{1,64}$/;
 const LIST_CACHE_MAX = 50;
+const FREIGHT_CACHE_TTL_MS = 60 * 60_000;
+const FREIGHT_CACHE_MAX = 200;
 
 const clamp = (n: number, min: number, max: number) => Math.min(Math.max(n, min), max);
 
@@ -37,6 +39,8 @@ export function createCjAdapter(deps: CjDeps = {}): SupplierAdapter {
   const ttl = deps.listCacheTtlMs ?? 60_000;
   /** Cada listado cuesta 50 puntos y ~2 s de cola: se reutiliza un minuto. */
   const listCache = new Map<string, { at: number; value: unknown }>();
+  /** El modal recalcula al escribir el PVP: el flete no se vuelve a pedir en una hora. */
+  const freightCache = new Map<string, { at: number; routes: ShippingRoute[] }>();
 
   /** Llamada autenticada. Si CJ rechaza el token, se renueva y se reintenta una vez. */
   async function api(req: Omit<CjRequest, "token">): Promise<unknown> {
@@ -58,6 +62,21 @@ export function createCjAdapter(deps: CjDeps = {}): SupplierAdapter {
     if (listCache.size >= LIST_CACHE_MAX) listCache.clear();
     listCache.set(key, { at: now(), value });
     return value;
+  }
+
+  async function routesFrom(origin: string, destination: string, vid: string): Promise<ShippingRoute[]> {
+    const key = `${origin}|${destination}|${vid}`;
+    const hit = freightCache.get(key);
+    if (hit && now() - hit.at < FREIGHT_CACHE_TTL_MS) return hit.routes;
+    const data = await api({
+      method: "POST",
+      path: CJ_ENDPOINTS.freight,
+      body: { startCountryCode: origin, endCountryCode: destination, products: [{ quantity: 1, vid }] },
+    });
+    const routes = parseCjRoutes(data, origin);
+    if (freightCache.size >= FREIGHT_CACHE_MAX) freightCache.clear();
+    freightCache.set(key, { at: now(), routes });
+    return routes;
   }
 
   return {
@@ -127,6 +146,30 @@ export function createCjAdapter(deps: CjDeps = {}): SupplierAdapter {
         if (!isSupplierError(e) || e.code !== "not_found") throw e;
       }
       return mapCjProduct(detail, inventory);
+    },
+
+    /**
+     * Ruta más barata desde el primer almacén UE con stock que llegue al destino.
+     * Se prueba antes el del propio país: hoy DE→ES y FR→ES no tienen rutas, pero
+     * si se abren se usarán sin cambiar nada. Se calcula con la variante más pesada
+     * de ese almacén (peor caso), una sola llamada por almacén.
+     */
+    async getShippingRoute(product, destination) {
+      const origins = product.stock.eu
+        .filter((e): e is typeof e & { warehouse: string } => e.warehouse !== null && e.quantity > 0)
+        .sort((a, b) => Number(b.warehouse === destination) - Number(a.warehouse === destination) || b.quantity - a.quantity);
+
+      for (const { warehouse } of origins) {
+        const candidates = product.variants.filter((v) => (v.euStockByWarehouse?.[warehouse] ?? 0) > 0);
+        const heaviest = candidates.reduce<(typeof candidates)[number] | null>(
+          (best, v) => (best === null || (v.weightKg ?? 0) > (best.weightKg ?? 0) ? v : best),
+          null,
+        );
+        if (!heaviest) continue;
+        const routes = await routesFrom(warehouse, destination, heaviest.supplierVariantId);
+        if (routes.length > 0) return routes[0];
+      }
+      return null;
     },
   };
 }

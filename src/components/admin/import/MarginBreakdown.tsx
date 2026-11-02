@@ -1,7 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import type { ImportFxDTO, MarginCheckDTO } from "@/lib/admin/import.types";
+import type { ImportFxDTO, ImportShippingDTO, MarginCheckDTO } from "@/lib/admin/import.types";
 import { costRowLabelKey } from "./costDisplay";
 import { formatMoney } from "./format";
 
@@ -22,6 +22,7 @@ export function MarginBreakdown({
   stale,
   costVaries,
   fx,
+  shipping,
 }: {
   check: MarginCheckDTO;
   stale: boolean;
@@ -29,6 +30,8 @@ export function MarginBreakdown({
   costVaries: boolean;
   /** Conversión aplicada: la fila de coste explica de dónde sale el importe en EUR. */
   fx: ImportFxDTO | null;
+  /** Flete real: la fila de envío dice qué ruta se ha calculado. */
+  shipping: ImportShippingDTO | null;
 }) {
   const t = useTranslations("admin.import.dialog.margin.rows");
 
@@ -48,7 +51,19 @@ export function MarginBreakdown({
         : t(costRowLabelKey(costVaries)),
       value: `− ${eur(check.cost)}`,
     },
-    { key: "shipping", label: t("shipping"), value: `− ${eur(check.shipping)}` },
+    {
+      key: "shipping",
+      label: !shipping
+        ? t("shipping")
+        : shipping.minDays === null
+          ? t("shippingRouteNoDays", { method: shipping.method, origin: shipping.origin })
+          : t("shippingRoute", {
+              method: shipping.method,
+              origin: shipping.origin,
+              days: shipping.minDays === shipping.maxDays ? String(shipping.minDays) : `${shipping.minDays}-${shipping.maxDays}`,
+            }),
+      value: `− ${eur(check.shipping)}`,
+    },
     { key: "stripe", label: t("stripe"), value: `− ${eur(check.stripeFee)}` },
     { key: "returns", label: t("returns"), value: `− ${eur(check.returnsBuffer)}` },
     ...(check.acquisition > 0

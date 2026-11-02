@@ -1,7 +1,7 @@
 import "server-only";
 import { EU_COUNTRY_CODES } from "../eu";
 import { list, num, rec, text, type Rec } from "../raw";
-import type { Money, SupplierProduct, SupplierVariant, WarehouseStock } from "../types";
+import type { Money, ShippingRoute, SupplierProduct, SupplierVariant, WarehouseStock } from "../types";
 import { CJ_IMAGE_HOSTS, CJ_LISTED_WAREHOUSES } from "./endpoints";
 
 /**
@@ -150,14 +150,44 @@ function variantAttributes(variantKey: string | null, productKey: string | null)
   return { variant: variantKey };
 }
 
-/** Existencias CJ en almacén UE explícito de una variante. */
-function euQuantity(entries: unknown): number {
-  let total = 0;
+/** Existencias CJ de una variante por almacén UE explícito. */
+function euQuantities(entries: unknown): Record<string, number> {
+  const out: Record<string, number> = {};
   for (const raw of list(entries)) {
     const e = rec(raw);
-    if (e && isEu(text(e.countryCode)) && (num(e.cjInventory) ?? 0) > 0) total += num(e.cjInventory) ?? 0;
+    const code = e ? text(e.countryCode)?.toUpperCase() ?? null : null;
+    const quantity = e ? num(e.cjInventory) ?? 0 : 0;
+    if (isEu(code) && quantity > 0) out[code] = (out[code] ?? 0) + quantity;
   }
-  return total;
+  return out;
+}
+
+/** Plazo de CJ: "3-5" o "7". */
+function parseAging(v: unknown): { minDays: number | null; maxDays: number | null } {
+  const match = text(v)?.match(/^(\d+)(?:\s*-\s*(\d+))?$/);
+  if (!match) return { minDays: null, maxDays: null };
+  const min = Number(match[1]);
+  return { minDays: min, maxDays: match[2] ? Number(match[2]) : min };
+}
+
+/**
+ * Rutas de `freightCalculate`, de más barata a más cara. Se toma el mayor entre
+ * `logisticPrice` y `totalPostageFee` (este último incluye tasas). Una ruta sin
+ * precio, con precio 0 o con error no se usa: CJ devuelve 0 en algunas rutas y no
+ * es un coste en el que se pueda confiar.
+ */
+export function parseCjRoutes(data: unknown, origin: string): ShippingRoute[] {
+  const routes: ShippingRoute[] = [];
+  for (const raw of list(data)) {
+    const r = rec(raw);
+    if (!r || text(r.error) || text(r.errorEn)) continue;
+    const method = text(r.logisticName);
+    const price = parseCjPrice(r.logisticPrice);
+    if (!method || price === null) continue;
+    const total = parseCjPrice(r.totalPostageFee);
+    routes.push({ origin, method, cost: usd(Math.max(price, total ?? 0)), ...parseAging(r.logisticAging) });
+  }
+  return routes.sort((a, b) => a.cost.amount - b.cost.amount || (a.maxDays ?? Infinity) - (b.maxDays ?? Infinity));
 }
 
 /**
@@ -172,11 +202,11 @@ export function mapCjProduct(detail: unknown, inventory: unknown): SupplierProdu
   if (!id || !title) return null;
 
   const inv = rec(inventory);
-  const stockByVid = new Map<string, number>();
+  const stockByVid = new Map<string, Record<string, number>>();
   for (const raw of list(inv?.variantInventories)) {
     const v = rec(raw);
     const vid = v ? text(v.vid) : null;
-    if (v && vid) stockByVid.set(vid, euQuantity(v.inventory));
+    if (v && vid) stockByVid.set(vid, euQuantities(v.inventory));
   }
 
   const productKey = text(d.productKeyEn);
@@ -185,7 +215,8 @@ export function mapCjProduct(detail: unknown, inventory: unknown): SupplierProdu
   for (const v of rawVariants) {
     const vid = text(v.vid);
     const cost = parseCjPrice(v.variantSellPrice);
-    const stock = vid ? stockByVid.get(vid) ?? 0 : 0;
+    const byWarehouse = vid ? stockByVid.get(vid) ?? {} : {};
+    const stock = Object.values(byWarehouse).reduce((n, q) => n + q, 0);
     if (!vid || cost === null || stock <= 0) continue;
     const key = text(v.variantKey);
     const suggested = parseCjPrice(v.variantSugSellPrice);
@@ -198,6 +229,8 @@ export function mapCjProduct(detail: unknown, inventory: unknown): SupplierProdu
       stock,
       attributes: variantAttributes(key, productKey),
       image: allowedImage(v.variantImage),
+      weightKg: gramsToKg(v.variantWeight),
+      euStockByWarehouse: byWarehouse,
     });
   }
 

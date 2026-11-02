@@ -7,7 +7,8 @@ import { createCjAuth, parseTokens, type CjAuthState } from "./auth";
 import { classifyCjResponse, createCjClient, isTokenRejected, type CjQueue, type CjRequest } from "./client";
 import { CJ_ENDPOINTS } from "./endpoints";
 import { createCjAdapter } from "./index";
-import { cleanDescription, mapCjListItem, mapCjProduct, parseCjPrice } from "./mappers";
+import { cleanDescription, mapCjListItem, mapCjProduct, parseCjPrice, parseCjRoutes } from "./mappers";
+import type { SupplierProduct } from "../types";
 
 const fixture = (name: string) => JSON.parse(readFileSync(join(import.meta.dir, "__fixtures__", `${name}.json`), "utf8"));
 
@@ -547,5 +548,126 @@ describe("adaptador completo contra una API falsa", () => {
     const err = await a.listProducts().catch((e: unknown) => e);
     expect(`${String(err)} ${JSON.stringify(err)}`).not.toContain("tok-valido");
     expect(isTokenRejected(err)).toBe(false);
+  });
+});
+
+describe("flete real", () => {
+  test("rutas reales: precio, plazo y método", () => {
+    const routes = parseCjRoutes(fixture("freight-es-es").data, "ES");
+    expect(routes[0]).toEqual({ origin: "ES", method: "UPS ES to Multi-Region", cost: { amount: 9.92, currency: "USD" }, minDays: 3, maxDays: 5 });
+    expect(parseCjRoutes(fixture("freight-de-es-sin-rutas").data, "DE")).toEqual([]);
+  });
+
+  test("de más barata a más cara; total con tasas si es mayor; 0, sin precio o con error fuera", () => {
+    const routes = parseCjRoutes(
+      [
+        { logisticName: "Cara", logisticPrice: 12, logisticAging: "1-2" },
+        { logisticName: "Tasas", logisticPrice: 5, totalPostageFee: 8, logisticAging: "7" },
+        { logisticName: "Gratis", logisticPrice: 0, logisticAging: "2-7" },
+        { logisticName: "SinPrecio", logisticAging: "2-7" },
+        { logisticName: "Rota", logisticPrice: 1, error: "no disponible" },
+        { logisticPrice: 3 },
+      ],
+      "ES",
+    );
+    expect(routes.map((r) => [r.method, r.cost.amount, r.minDays, r.maxDays])).toEqual([
+      ["Tasas", 8, 7, 7],
+      ["Cara", 12, 1, 2],
+    ]);
+  });
+
+  const product = (stockBy: Record<string, Record<string, number>>, weights: Record<string, number> = {}): SupplierProduct => {
+    const totals: Record<string, number> = {};
+    for (const by of Object.values(stockBy)) for (const [w, q] of Object.entries(by)) totals[w] = (totals[w] ?? 0) + q;
+    return {
+      supplier: "cj",
+      supplierProductId: "p1",
+      sku: null,
+      ean: null,
+      title: "x",
+      description: null,
+      images: [],
+      category: null,
+      weightKg: null,
+      cost: { amount: 5, currency: "USD" },
+      suggestedRetail: null,
+      stock: {
+        total: 0,
+        eu: Object.entries(totals).map(([warehouse, quantity]) => ({ warehouse, quantity, minHandlingDays: null, maxHandlingDays: null })),
+        euTotal: 0,
+      },
+      delivery: { minDays: null, maxDays: null },
+      variants: Object.entries(stockBy).map(([vid, by]) => ({
+        supplierVariantId: vid,
+        sku: null,
+        name: vid,
+        cost: { amount: 5, currency: "USD" },
+        suggestedRetail: null,
+        stock: 1,
+        attributes: {},
+        image: null,
+        weightKg: weights[vid] ?? null,
+        euStockByWarehouse: by,
+      })),
+    };
+  };
+
+  function freightAdapter(answers: Record<string, unknown[]>) {
+    const time = fakeTime();
+    const bodies: { startCountryCode: string; endCountryCode: string; products: { vid: string }[] }[] = [];
+    const a = createCjAdapter({
+      now: time.now,
+      sleep: time.sleep,
+      queue: newQueue(),
+      authState: newState(),
+      tokenStore: memoryTokens(validTokens()).store,
+      getApiKey: async () => "k",
+      fetchImpl: (async (_url: string | URL | Request, init?: RequestInit) => {
+        const body = JSON.parse(String(init?.body));
+        bodies.push(body);
+        return ok(answers[`${body.startCountryCode}>${body.endCountryCode}`] ?? []);
+      }) as typeof fetch,
+    });
+    return { a, bodies, time };
+  }
+  const route = { logisticName: "UPS", logisticPrice: 9.92, logisticAging: "3-5" };
+
+  test("prueba primero el almacén del propio país y usa la variante más pesada", async () => {
+    const { a, bodies } = freightAdapter({ "ES>ES": [route] });
+    const r = await a.getShippingRoute!(product({ v1: { ES: 5, DE: 500 }, v2: { ES: 5 } }, { v1: 0.2, v2: 0.9 }), "ES");
+    expect(r).toMatchObject({ origin: "ES", method: "UPS" });
+    expect(bodies).toEqual([{ startCountryCode: "ES", endCountryCode: "ES", products: [{ quantity: 1, vid: "v2" }] }]);
+  });
+
+  test("DE→ES: se comprueba, y si se abre se usa", async () => {
+    const closed = freightAdapter({});
+    expect(await closed.a.getShippingRoute!(product({ v1: { DE: 10 } }), "ES")).toBeNull();
+    expect(closed.bodies.map((b) => b.startCountryCode)).toEqual(["DE"]);
+
+    const open = freightAdapter({ "DE>ES": [route] });
+    expect(await open.a.getShippingRoute!(product({ v1: { DE: 10 } }), "ES")).toMatchObject({ origin: "DE" });
+  });
+
+  test("sin stock en ningún almacén o sin desglose por variante: no consulta", async () => {
+    const { a, bodies } = freightAdapter({ "ES>ES": [route] });
+    expect(await a.getShippingRoute!(product({}), "ES")).toBeNull();
+    expect(bodies).toEqual([]);
+  });
+
+  test("el flete se reutiliza una hora: el modal no consulta a cada tecla", async () => {
+    const { a, bodies, time } = freightAdapter({ "ES>ES": [route] });
+    const p = product({ v1: { ES: 5 } });
+    await a.getShippingRoute!(p, "ES");
+    await a.getShippingRoute!(p, "ES");
+    expect(bodies.length).toBe(1);
+    time.advance(61 * 60_000);
+    await a.getShippingRoute!(p, "ES");
+    expect(bodies.length).toBe(2);
+  });
+
+  test("el stock del detalle se desglosa por almacén", () => {
+    const p = mapCjProduct(fixture("product-es").data, fixture("inventory-es").data);
+    expect(p?.variants[0].euStockByWarehouse).toEqual({ ES: 100 });
+    expect(p?.variants[0].weightKg).toBe(0.51);
   });
 });

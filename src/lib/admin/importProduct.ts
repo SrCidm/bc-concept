@@ -13,6 +13,7 @@ import {
   type ImportErrorCode,
   type ImportFxDTO,
   type ImportPreviewDTO,
+  type ImportShippingDTO,
   type ImportResultDTO,
   type MarginCheckDTO,
   type StoreCategory,
@@ -52,6 +53,11 @@ export interface ProductRow {
   fx_rate: number | null;
   fx_rate_date: string | null;
   fx_buffer_pct: number | null;
+  /** Flete real en EUR, si el proveedor lo calcula. */
+  shipping_estimate: number | null;
+  shipping_method: string | null;
+  delivery_min_days?: number;
+  delivery_max_days?: number;
   supplier_product_type: string | null;
   supplier_seller_id: string | null;
   supplier_seller_name: string | null;
@@ -210,7 +216,12 @@ interface Assessment {
   toEur: (amount: number) => number;
   /** Tipo aplicado (null si el proveedor cobra en EUR). */
   fx: { rate: number; rateDate: string; bufferPct: number; stale: boolean; ageDays: number } | null;
+  /** Flete real (null: la guarda usa el envío medio de los ajustes). */
+  shipping: ImportShippingDTO | null;
 }
+
+/** La tienda es Spain-first: el flete se calcula hasta España. */
+const SHIPPING_DESTINATION = "ES";
 
 /** Monedas que se saben convertir (además de EUR). */
 const CONVERTIBLE = new Set(["USD"]);
@@ -238,6 +249,8 @@ async function assess(
   let best = eligible[0];
   for (const e of eligible) if (e.quantity > best.quantity) best = e;
 
+  let warehouse = best.warehouse as string;
+  let euStock = eligible.reduce((n, e) => n + e.quantity, 0);
   let toEur = (amount: number) => amount;
   let fx: Assessment["fx"] = null;
   if (currency !== "EUR") {
@@ -248,6 +261,19 @@ async function assess(
     fx = { rate: quote.rate, rateDate: quote.rateDate, bufferPct, stale: quote.stale, ageDays: quote.ageDays };
   }
 
+  // Flete real, si el proveedor lo calcula: sin ruta a España no se importa, sin
+  // caer al envío medio. La ruta manda sobre el almacén y el stock que cuentan.
+  let shipping: ImportShippingDTO | null = null;
+  const adapter = (deps.getAdapter ?? (() => getSupplierAdapter(product.supplier)))();
+  if (adapter.getShippingRoute) {
+    const route = await adapter.getShippingRoute(product, SHIPPING_DESTINATION);
+    if (!route) return { ok: false, code: "no_shipping_route" };
+    if (route.cost.currency !== currency) return { ok: false, code: "currency_mismatch" };
+    shipping = { cost: toEur(route.cost.amount), method: route.method, origin: route.origin, minDays: route.minDays, maxDays: route.maxDays };
+    warehouse = route.origin;
+    euStock = eligible.find((e) => e.warehouse === route.origin)?.quantity ?? 0;
+  }
+
   const variantCosts = product.variants.map((v) => v.cost.amount);
   const validVariantCosts = variantCosts.filter((c) => Number.isFinite(c) && c >= 0);
   const worstOriginal = worstCaseCost(product.cost.amount, variantCosts);
@@ -255,13 +281,14 @@ async function assess(
   return {
     ok: true,
     value: {
-      warehouse: best.warehouse as string,
-      euStock: eligible.reduce((n, e) => n + e.quantity, 0),
+      warehouse,
+      euStock,
       guardCost: toEur(worstOriginal),
       minCost: toEur(Math.min(product.cost.amount, ...validVariantCosts)),
       worstOriginal,
       toEur,
       fx,
+      shipping,
     },
   };
 }
@@ -388,7 +415,7 @@ function buildRows(
           price_cost: a.toEur(v.cost.amount),
           cost_original: v.cost.amount,
           price_retail: price,
-          inventory: v.stock,
+          inventory: a.shipping && v.euStockByWarehouse ? v.euStockByWarehouse[a.warehouse] ?? 0 : v.stock,
           attributes: v.attributes,
           image: v.image,
         }))
@@ -420,6 +447,10 @@ function buildRows(
       fx_rate: a.fx?.rate ?? null,
       fx_rate_date: a.fx?.rateDate ?? null,
       fx_buffer_pct: a.fx?.bufferPct ?? null,
+      shipping_estimate: a.shipping?.cost ?? null,
+      shipping_method: a.shipping?.method ?? null,
+      ...(a.shipping?.minDays != null ? { delivery_min_days: a.shipping.minDays } : {}),
+      ...(a.shipping?.maxDays != null ? { delivery_max_days: a.shipping.maxDays } : {}),
       supplier_product_type: product.origin?.productType ?? null,
       supplier_seller_id: product.origin?.sellerId ?? null,
       supplier_seller_name: product.origin?.sellerName ?? null,
@@ -476,7 +507,8 @@ export async function previewImport(
     const a = await assess(product, params, deps);
     if (!a.ok) return { ok: false, code: a.code };
 
-    const minPrice = minimumPrice(a.value.guardCost, params);
+    const overrides = a.value.shipping ? { shippingCost: a.value.shipping.cost } : {};
+    const minPrice = minimumPrice(a.value.guardCost, params, overrides);
     const fx = a.value.fx;
     const rrp = suggestedRetailEur(product, fx?.rate ?? null);
     const suggestedPrice =
@@ -487,7 +519,7 @@ export async function previewImport(
           : null;
 
     const price = input.priceRetail ?? suggestedPrice;
-    const check = price === null ? null : evaluateMarginGuard(a.value.guardCost, price, params);
+    const check = price === null ? null : evaluateMarginGuard(a.value.guardCost, price, params, overrides);
 
     const mock = (deps.isMock ?? isMockEnabled)();
     let alreadyImported: ImportPreviewDTO["alreadyImported"] = null;
@@ -516,6 +548,7 @@ export async function previewImport(
           euStock: a.value.euStock,
         },
         fx: fx ? toFxDTO(product.cost.currency, a.value.worstOriginal, fx) : null,
+        shipping: a.value.shipping,
         suggestedPrice,
         check: check ? toCheckDTO(check) : null,
         alreadyImported,
@@ -548,7 +581,8 @@ export async function importProduct(
     const a = await assess(product, params, deps);
     if (!a.ok) return { ok: false, code: a.code };
 
-    const check = evaluateMarginGuard(a.value.guardCost, price, params);
+    const overrides = a.value.shipping ? { shippingCost: a.value.shipping.cost } : {};
+    const check = evaluateMarginGuard(a.value.guardCost, price, params, overrides);
     if (!check) return { ok: false, code: "bad_response" }; // coste no válido
     const checkDTO = toCheckDTO(check);
 

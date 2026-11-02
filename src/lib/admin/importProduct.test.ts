@@ -3,7 +3,7 @@ import type { AdminDecision } from "@/lib/auth/requireAdmin";
 import { DEFAULT_MARGIN_PARAMS } from "@/lib/pricing/settings";
 import { SupplierError } from "@/lib/suppliers/errors";
 import type { FxQuote } from "@/lib/pricing/fx";
-import type { SupplierAdapter, SupplierProduct, SupplierVariant } from "@/lib/suppliers/types";
+import type { ShippingRoute, SupplierAdapter, SupplierProduct, SupplierVariant } from "@/lib/suppliers/types";
 import {
   htmlToPlainText,
   importProduct,
@@ -801,5 +801,86 @@ describe("proveedor que cobra en USD (CJ)", () => {
       fx_rate_date: null,
       fx_buffer_pct: null,
     });
+  });
+});
+
+describe("flete real del proveedor", () => {
+  const usd = (amount: number) => ({ amount, currency: "USD" });
+  const CJ: SupplierProduct = {
+    ...PRODUCT,
+    supplier: "cj",
+    supplierProductId: "p1",
+    cost: usd(7.28),
+    suggestedRetail: usd(50.09),
+    stock: {
+      total: 130,
+      eu: [
+        { warehouse: "DE", quantity: 90, minHandlingDays: null, maxHandlingDays: null },
+        { warehouse: "ES", quantity: 40, minHandlingDays: null, maxHandlingDays: null },
+      ],
+      euTotal: 130,
+    },
+    variants: [variant("a", 7.28, { cost: usd(7.28), stock: 130, euStockByWarehouse: { ES: 40, DE: 90 } })],
+  };
+  const QUOTE = { ok: true as const, rate: 0.89509, rateDate: "2026-10-30", ageDays: 3, stale: false };
+  const ROUTE: ShippingRoute = { origin: "ES", method: "UPS ES to Multi-Region", cost: usd(9.92), minDays: 3, maxDays: 5 };
+
+  function withRoute(getShippingRoute: SupplierAdapter["getShippingRoute"], product: SupplierProduct = CJ) {
+    const s = setup({ product });
+    const base = s.deps.getAdapter!();
+    return { ...s, deps: { ...s.deps, getFx: async () => QUOTE, getAdapter: () => ({ ...base, getShippingRoute }) } };
+  }
+  const input = { supplierProductId: "p1", priceRetail: 44.9 };
+
+  test("la guarda usa el flete real convertido, no el envío medio", async () => {
+    const { deps } = withRoute(async () => ROUTE);
+    const r = await previewImport("cj", input, deps);
+    if (!r.ok) throw new Error(r.code);
+    expect(r.data.check?.shipping).toBe(9.15); // 9,92 USD × 0,89509 × 1,03
+    expect(r.data.shipping).toEqual({ cost: 9.15, method: "UPS ES to Multi-Region", origin: "ES", minDays: 3, maxDays: 5 });
+    expect(r.data.check?.minPrice).toBe(25.26); // (6,71 + 9,15 + 0,25) / 0,6379
+  });
+
+  test("el almacén y el stock son los de la ruta, no el de más stock", async () => {
+    const { deps, mem } = withRoute(async () => ROUTE);
+    const r = await importProduct("cj", input, deps);
+    expect(r.ok).toBe(true);
+    expect(mem.products.get("cj:p1")!.row).toMatchObject({
+      warehouse: "ES",
+      inventory: 40,
+      shipping_estimate: 9.15,
+      shipping_method: "UPS ES to Multi-Region",
+      delivery_min_days: 3,
+      delivery_max_days: 5,
+    });
+    expect(mem.variants[0].inventory).toBe(40);
+  });
+
+  test("sin ruta a España: no importable, sin caer al envío medio ni escribir", async () => {
+    const { deps, mem } = withRoute(async () => null);
+    expect(await previewImport("cj", input, deps)).toEqual({ ok: false, code: "no_shipping_route" });
+    expect(await importProduct("cj", { ...input, confirmBelowMargin: true }, deps)).toEqual({ ok: false, code: "no_shipping_route" });
+    expect(mem.calls).toEqual([]);
+  });
+
+  test("error del flete: código seguro, sin caer al envío medio", async () => {
+    const { deps, mem } = withRoute(async () => {
+      throw new SupplierError("rate_limited");
+    });
+    expect(await importProduct("cj", input, deps)).toEqual({ ok: false, code: "rate_limited" });
+    expect(mem.calls).toEqual([]);
+  });
+
+  test("flete en otra moneda que el coste: no se mezcla", async () => {
+    const { deps } = withRoute(async () => ({ ...ROUTE, cost: { amount: 9, currency: "EUR" } }));
+    expect(await previewImport("cj", input, deps)).toEqual({ ok: false, code: "currency_mismatch" });
+  });
+
+  test("proveedor sin flete (BigBuy): sigue usando el envío medio", async () => {
+    const { deps } = setup({ product: PRODUCT });
+    const r = await previewImport("bigbuy", { supplierProductId: "1001", priceRetail: 59.9 }, deps);
+    if (!r.ok) throw new Error(r.code);
+    expect(r.data.shipping).toBeNull();
+    expect(r.data.check?.shipping).toBe(DEFAULT_MARGIN_PARAMS.shippingCost);
   });
 });
