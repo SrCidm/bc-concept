@@ -195,7 +195,7 @@
       }
     },
     "import": {
-      "title": "Importar desde BigBuy",
+      "title": "Importar desde proveedor",
       "intro": "Explora el catálogo del proveedor y revisa coste y stock antes de decidir qué entra en la tienda.",
       "search": {
         "label": "Buscar producto",
@@ -205,7 +205,8 @@
         "clear": "Limpiar",
         "filtersLabel": "Filtros",
         "euOnly": "Solo almacén UE",
-        "inStockOnly": "Solo con stock"
+        "inStockOnly": "Solo con stock",
+        "placeholderEnglish": "Nombre en inglés: vase, lamp, cushion…"
       },
       "mock": {
         "title": "Datos de ejemplo",
@@ -215,7 +216,8 @@
         "label": "Resultados del catálogo",
         "summary": "{shown, plural, one {# producto} other {# productos}} de {fetched} revisados en la página {page}",
         "summarySearch": "{shown, plural, one {# coincidencia} other {# coincidencias}} para «{q}» entre {fetched} revisados en la página {page}",
-        "searchNote": "La búsqueda por texto filtra los productos de cada página; usa «Siguiente» para seguir buscando."
+        "searchNote": "La búsqueda por texto filtra los productos de cada página; usa «Siguiente» para seguir buscando.",
+        "summaryServer": "{shown, plural, one {# producto} other {# productos}} en la página {page}"
       },
       "card": {
         "reference": "Ref. {sku}",
@@ -227,7 +229,8 @@
         "noStock": "Sin stock",
         "delivery": "{min}–{max} días",
         "deliverySingle": "{days} días",
-        "noImage": "Sin imagen"
+        "noImage": "Sin imagen",
+        "stockIn": "En almacén {warehouse}"
       },
       "pagination": {
         "label": "Paginación de resultados",
@@ -241,7 +244,10 @@
         "searchTitle": "Sin coincidencias en esta página",
         "searchBody": "Ningún producto de esta página contiene «{q}». Prueba otra palabra, quita filtros o pasa a la página siguiente.",
         "clear": "Limpiar búsqueda",
-        "nextPage": "Ver la página siguiente"
+        "nextPage": "Ver la página siguiente",
+        "bodyServer": "No hay productos en el almacén de la UE para esta búsqueda.",
+        "searchBodyServer": "Ningún producto contiene «{q}». El catálogo de este proveedor está en inglés: prueba otra palabra.",
+        "searchTitleServer": "Sin coincidencias"
       },
       "loading": "Cargando el catálogo…",
       "dialog": {
@@ -252,7 +258,7 @@
         "cancel": "Cancelar",
         "reference": "Ref. {sku}",
         "loading": "Cargando los datos del proveedor…",
-        "simulated": "Simulación: con datos de ejemplo no se escribe nada en la base de datos.",
+        "simulated": "Simulación: guardar no escribe nada en la base de datos.",
         "supplier": {
           "cost": "Coste de proveedor",
           "warehouse": "Almacén",
@@ -328,13 +334,13 @@
         "errors": {
           "unauthenticated": "Tu sesión ha caducado. Vuelve a entrar.",
           "forbidden": "Tu cuenta no tiene acceso.",
-          "not_configured": "BigBuy aún no está conectado.",
-          "unauthorized": "BigBuy ha rechazado la clave de API.",
-          "rate_limited": "BigBuy limita las peticiones. Espera unos segundos.",
-          "timeout": "BigBuy no ha respondido a tiempo.",
-          "upstream": "BigBuy no está disponible ahora mismo.",
-          "bad_response": "BigBuy ha respondido algo inesperado.",
-          "not_found": "El producto ya no existe en BigBuy.",
+          "not_configured": "El proveedor aún no está conectado.",
+          "unauthorized": "El proveedor ha rechazado la clave de API.",
+          "rate_limited": "El proveedor limita las peticiones. Espera unos segundos.",
+          "timeout": "El proveedor no ha respondido a tiempo.",
+          "upstream": "El proveedor no está disponible ahora mismo.",
+          "bad_response": "El proveedor ha respondido algo inesperado.",
+          "not_found": "El producto ya no existe en el proveedor.",
           "invalid_request": "Los datos no son válidos.",
           "unsupported": "Proveedor no soportado todavía.",
           "not_eu_eligible": "No se puede importar: no tiene stock en un almacén de la UE verificado.",
@@ -351,27 +357,27 @@
         "clear": "Limpiar búsqueda",
         "title": "No se ha podido cargar el catálogo",
         "not_configured": {
-          "title": "BigBuy aún no está conectado",
+          "title": "El proveedor aún no está conectado",
           "body": "Falta la clave de API del proveedor. Cuando esté configurada, el catálogo aparecerá aquí."
         },
         "unauthorized": {
-          "title": "BigBuy ha rechazado la clave de API",
+          "title": "El proveedor ha rechazado la clave de API",
           "body": "Revisa que la clave sea correcta y esté activa, y vuelve a intentarlo."
         },
         "rate_limited": {
-          "title": "BigBuy está limitando las peticiones",
+          "title": "El proveedor está limitando las peticiones",
           "body": "Espera unos segundos y vuelve a intentarlo."
         },
         "timeout": {
-          "title": "BigBuy no ha respondido a tiempo",
+          "title": "El proveedor no ha respondido a tiempo",
           "body": "Puede ser algo puntual. Vuelve a intentarlo en un momento."
         },
         "upstream": {
-          "title": "BigBuy no está disponible ahora mismo",
+          "title": "El proveedor no está disponible ahora mismo",
           "body": "El error es del proveedor, no de tu búsqueda. Vuelve a intentarlo en unos minutos."
         },
         "bad_response": {
-          "title": "BigBuy ha respondido algo inesperado",
+          "title": "El proveedor ha respondido algo inesperado",
           "body": "La respuesta no tiene el formato esperado. Si se repite, avisa al equipo técnico."
         },
         "invalid_request": {
@@ -387,6 +393,12 @@
         "title": "Algo ha fallado al mostrar esta pantalla",
         "body": "Puedes volver a intentarlo. Si el error se repite, avisa al equipo técnico.",
         "retry": "Reintentar"
+      },
+      "suppliers": {
+        "label": "Proveedor",
+        "cj": "CJ Dropshipping",
+        "bigbuy": "BigBuy",
+        "notConnected": "no conectado"
       }
     }
   },

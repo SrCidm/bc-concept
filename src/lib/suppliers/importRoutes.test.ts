@@ -168,11 +168,11 @@ describe("endurecimiento de las rutas", () => {
     }
   });
 
-  test("proveedor desconocido → 404; CJ (sin migrar) → 501", async () => {
+  test("proveedor desconocido → 404; CJ sin credencial → 503, sin escribir", async () => {
     const { save, preview } = await load();
     expect((await save.POST(post({ supplierProductId: ID, priceRetail: 99.9 }), ctx("nope"))).status).toBe(404);
-    expect((await save.POST(post({ supplierProductId: ID, priceRetail: 99.9 }), ctx("cj"))).status).toBe(501);
-    expect((await preview.POST(post({ supplierProductId: ID }), ctx("cj"))).status).toBe(501);
+    expect((await save.POST(post({ supplierProductId: ID, priceRetail: 99.9 }), ctx("cj"))).status).toBe(503);
+    expect((await preview.POST(post({ supplierProductId: ID }), ctx("cj"))).status).toBe(503);
   });
 
   test("error del proveedor simulado → código sin detalles", async () => {

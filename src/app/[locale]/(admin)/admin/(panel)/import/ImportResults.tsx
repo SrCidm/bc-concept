@@ -20,7 +20,9 @@ export async function ImportResults({ params }: { params: Extract<ImportParams, 
   // Reintento: <a> con recarga completa (string); el resto, enlaces tipados.
   const qs = importQueryString(ui);
   const here = qs ? `${BASE}?${qs}` : BASE;
-  const clearHref = importHref("");
+  const clearHref = importHref(importQueryString({ supplier: ui.supplier }));
+  // CJ busca en el servidor; en BigBuy la búsqueda filtra cada página en local.
+  const serverSearch = ui.supplier === "cj";
 
   const result = await listAdminCatalog(query);
 
@@ -39,16 +41,23 @@ export async function ImportResults({ params }: { params: Extract<ImportParams, 
       {source === "mock" && <MockBanner />}
 
       {data.items.length === 0 ? (
-        <ImportEmpty q={ui.q} clearHref={clearHref} nextHref={ui.q && data.hasMore ? pageHref(ui.page + 1) : null} />
+        <ImportEmpty
+          q={ui.q}
+          clearHref={clearHref}
+          nextHref={!serverSearch && ui.q && data.hasMore ? pageHref(ui.page + 1) : null}
+          serverSearch={serverSearch}
+        />
       ) : (
         <>
           <p role="status" className="mb-3 text-sm tabular-nums text-bc-text-secondary">
-            {ui.q
+            {serverSearch
+              ? t("results.summaryServer", { shown: data.items.length, page: data.page })
+              : ui.q
               ? t("results.summarySearch", { shown: data.items.length, fetched: data.fetched, page: data.page, q: ui.q })
               : t("results.summary", { shown: data.items.length, fetched: data.fetched, page: data.page })}
           </p>
           <ImportGrid items={data.items} label={t("results.label")} />
-          {ui.q && data.hasMore && <p className="mt-4 text-sm text-bc-text-secondary">{t("results.searchNote")}</p>}
+          {!serverSearch && ui.q && data.hasMore && <p className="mt-4 text-sm text-bc-text-secondary">{t("results.searchNote")}</p>}
         </>
       )}
 

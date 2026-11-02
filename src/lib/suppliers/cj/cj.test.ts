@@ -671,3 +671,35 @@ describe("flete real", () => {
     expect(p?.variants[0].weightKg).toBe(0.51);
   });
 });
+
+describe("diagnóstico en logs", () => {
+  async function logged(body: unknown, status = 200) {
+    const lines: string[] = [];
+    const original = console.error;
+    console.error = (...a: unknown[]) => void lines.push(a.join(" "));
+    try {
+      const time = fakeTime();
+      const client = createCjClient({ now: time.now, sleep: time.sleep, queue: newQueue(), fetchImpl: (async () => json(body, status)) as typeof fetch });
+      await client.call({ method: "GET", path: "/x", token: "tok-secreto" }).catch(() => undefined);
+    } finally {
+      console.error = original;
+    }
+    return lines;
+  }
+
+  test("registra ruta, estado y código; nunca el mensaje de CJ ni el token", async () => {
+    const lines = await logged({ code: 1600300, result: false, message: "SECRETO" });
+    expect(lines).toEqual(["[cj] /x HTTP 200 code=1600300"]);
+    expect(lines.join()).not.toContain("tok-secreto");
+  });
+
+  test("distingue el límite por IP compartida, sin propagarlo", async () => {
+    const lines = await logged({ code: 1600000, result: false, message: "one ip limit 3 users, Your Ip is 1.2.3.4" });
+    expect(lines[0]).toContain("límite por IP compartida");
+    expect(lines.join()).not.toContain("1.2.3.4");
+  });
+
+  test("una respuesta correcta no registra nada", async () => {
+    expect(await logged({ code: 200, result: true, data: {} })).toEqual([]);
+  });
+});

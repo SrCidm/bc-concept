@@ -6,20 +6,20 @@ describe("parseImportParams", () => {
     const r = parseImportParams({});
     expect(r.ok).toBe(true);
     if (!r.ok) return;
-    expect(r.ui).toEqual({ q: "", page: 1, eu: true, stock: true });
+    expect(r.ui).toEqual({ supplier: "cj", q: "", page: 1, eu: true, stock: true });
     expect(r.query).toMatchObject({ page: 1, pageSize: 24, euOnly: true, inStockOnly: true, lang: "es" });
   });
 
-  test("eu=0 / stock=0 apagan los filtros; q se recorta", () => {
-    const r = parseImportParams({ q: "  lámpara ", page: "3", eu: "0", stock: "0" });
+  test("BigBuy: eu=0 / stock=0 apagan los filtros; q se recorta", () => {
+    const r = parseImportParams({ supplier: "bigbuy", q: "  lámpara ", page: "3", eu: "0", stock: "0" });
     if (!r.ok) throw new Error("debería ser válido");
-    expect(r.ui).toEqual({ q: "lámpara", page: 3, eu: false, stock: false });
+    expect(r.ui).toEqual({ supplier: "bigbuy", q: "lámpara", page: 3, eu: false, stock: false });
     expect(r.query).toMatchObject({ query: "lámpara", page: 3, euOnly: false, inStockOnly: false });
   });
 
   test("parámetros repetidos (envío nativo del formulario): gana el último", () => {
-    const on = parseImportParams({ eu: ["0", "1"] });
-    const off = parseImportParams({ eu: ["1", "0"] });
+    const on = parseImportParams({ supplier: "bigbuy", eu: ["0", "1"] });
+    const off = parseImportParams({ supplier: "bigbuy", eu: ["1", "0"] });
     expect(on.ok && on.ui.eu).toBe(true);
     expect(off.ok && off.ui.eu).toBe(false);
   });

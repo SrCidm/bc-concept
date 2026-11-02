@@ -84,7 +84,12 @@ export function toAdminProductDTO(
     costEur: costInEur(p.cost, params, fx),
     suggestedRetail: p.suggestedRetail,
     ...deriveMargin(p.cost, p.suggestedRetail, params, fx),
-    stock: { total: p.stock.total, euTotal: p.stock.euTotal, eu: p.stock.eu },
+    stock: {
+      total: p.stock.total,
+      euTotal: p.stock.euTotal,
+      eu: p.stock.eu,
+      ...(p.stock.exact === undefined ? {} : { exact: p.stock.exact }),
+    },
     delivery: p.delivery,
     variants: p.variants.map(variantDTO),
   };

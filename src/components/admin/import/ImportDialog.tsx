@@ -17,8 +17,6 @@ import { MarginBreakdown, formatPct } from "./MarginBreakdown";
 import { formatPriceInput, parsePriceInput } from "./price";
 import { ProductThumb } from "./ProductThumb";
 
-const PREVIEW_URL = "/api/admin/suppliers/bigbuy/import/preview";
-const SAVE_URL = "/api/admin/suppliers/bigbuy/import";
 const DEBOUNCE_MS = 300;
 /** Errores transitorios: reintentar puede funcionar. El resto (no UE, moneda, clave…) no se arregla reintentando. */
 const RETRYABLE = new Set(["rate_limited", "timeout", "upstream", "bad_response", "network", "storage_failed"]);
@@ -64,6 +62,7 @@ const secondaryButton =
   "disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-bc-accent focus-visible:ring-offset-2";
 
 export interface ImportDialogProduct {
+  supplier: "cj" | "bigbuy";
   id: string;
   title: string;
   image: string | null;
@@ -106,7 +105,7 @@ export function ImportDialog({ product, onClose }: { product: ImportDialogProduc
     setPhase("loading");
     setError(null);
     (async () => {
-      const r = await post(PREVIEW_URL, { supplierProductId: product.id }, ctrl.signal);
+      const r = await post(`/api/admin/suppliers/${product.supplier}/import/preview`, { supplierProductId: product.id }, ctrl.signal);
       if (ctrl.signal.aborted) return;
       if (!r.ok) {
         setError(r.code ?? "upstream");
@@ -120,7 +119,7 @@ export function ImportDialog({ product, onClose }: { product: ImportDialogProduc
       setPhase("ready");
     })();
     return () => ctrl.abort();
-  }, [product.id, attempt]);
+  }, [product.supplier, product.id, attempt]);
 
   // 2) Recalcular la guarda (en el servidor) al cambiar el PVP, con debounce.
   const parsed = parsePriceInput(priceText);
@@ -137,7 +136,7 @@ export function ImportDialog({ product, onClose }: { product: ImportDialogProduc
     const id = ++reqRef.current;
     setChecking(true);
     const timer = setTimeout(async () => {
-      const r = await post(PREVIEW_URL, { supplierProductId: product.id, priceRetail: parsed });
+      const r = await post(`/api/admin/suppliers/${product.supplier}/import/preview`, { supplierProductId: product.id, priceRetail: parsed });
       if (id !== reqRef.current) return; // llegó tarde: hay una petición más nueva
       setChecking(false);
       if (r.ok) {
@@ -162,7 +161,7 @@ export function ImportDialog({ product, onClose }: { product: ImportDialogProduc
     if (!canSave || parsed === null) return;
     setSaving(true);
     setError(null);
-    const r = await post(SAVE_URL, {
+    const r = await post(`/api/admin/suppliers/${product.supplier}/import`, {
       supplierProductId: product.id,
       priceRetail: parsed,
       category: category === "" ? null : category,

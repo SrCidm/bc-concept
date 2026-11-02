@@ -12,7 +12,10 @@ export function ImportCard({ product }: { product: AdminProductDTO }) {
   const t = useTranslations("admin.import.card");
   const { stock, delivery } = product;
 
-  const euStock = stock.euTotal > 0;
+  // Sin cantidad exacta (CJ): el listado garantiza stock en ese almacén UE.
+  const inList = stock.exact === false && stock.eu.length > 0;
+  const euStock = stock.euTotal > 0 || inList;
+  const converted = product.cost.currency !== "EUR" && product.costEur !== null;
   const otherStock = Math.max(0, stock.total - stock.euTotal);
 
   let deliveryText: string | null = null;
@@ -46,12 +49,17 @@ export function ImportCard({ product }: { product: AdminProductDTO }) {
       <dl className="grid grid-cols-2 gap-x-3 gap-y-1 border-t border-bc-border pt-3 text-sm">
         <div>
           <dt className="text-xs text-bc-text-secondary">{t("cost")}</dt>
-          <dd className="font-medium tabular-nums text-bc-text-primary">{formatMoney(product.cost)}</dd>
+          <dd className="font-medium tabular-nums text-bc-text-primary">
+            {converted ? formatMoney({ amount: product.costEur as number, currency: "EUR" }) : formatMoney(product.cost)}
+          </dd>
+          {converted && <dd className="text-xs tabular-nums text-bc-text-secondary">{formatMoney(product.cost)}</dd>}
         </div>
         <div className="min-w-0">
           <dt className="text-xs text-bc-text-secondary">{t("stock")}</dt>
           <dd className="tabular-nums text-bc-text-primary">
-            {euStock ? (
+            {inList ? (
+              t("stockIn", { warehouse: stock.eu.map((e) => e.warehouse).join(", ") })
+            ) : euStock ? (
               t("stockEu", { eu: formatInt(stock.euTotal) })
             ) : stock.total > 0 ? (
               <span className="inline-block rounded-bc border border-bc-border px-1.5 py-0.5 text-xs text-bc-text-secondary">
@@ -75,6 +83,7 @@ export function ImportCard({ product }: { product: AdminProductDTO }) {
       <div className="mt-auto pt-1">
         <ImportAction
           product={{
+            supplier: product.supplier,
             id: product.supplierProductId,
             title: product.title,
             image: product.images[0] ?? null,

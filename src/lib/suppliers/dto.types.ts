@@ -36,7 +36,8 @@ export interface AdminProductDTO {
   margin: MarginBreakdown | null;
   /** Por qué no hay margen (null si lo hay). */
   marginReason: MarginReason | null;
-  stock: { total: number; euTotal: number; eu: WarehouseStock[] };
+  /** `exact: false`: el listado garantiza stock en ese almacén, sin dar la cantidad. */
+  stock: { total: number; euTotal: number; eu: WarehouseStock[]; exact?: boolean };
   delivery: { minDays: number | null; maxDays: number | null };
   variants: AdminVariantDTO[];
 }

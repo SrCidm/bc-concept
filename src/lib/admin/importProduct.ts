@@ -6,7 +6,7 @@ import type { MarginParams } from "@/lib/pricing/margin";
 import { marginSettings } from "@/lib/pricing/settings";
 import { isSupplierError } from "@/lib/suppliers/errors";
 import { EU_COUNTRY_CODES } from "@/lib/suppliers/eu";
-import { getSupplierAdapter, isMockEnabled } from "@/lib/suppliers/registry";
+import { getSupplierAdapter, isSimulatedImport } from "@/lib/suppliers/registry";
 import type { SupplierAdapter, SupplierId, SupplierProduct } from "@/lib/suppliers/types";
 import {
   isStoreCategory,
@@ -35,7 +35,7 @@ import {
  *   más permisivo; ver la deuda en bigbuy/warehouses.ts).
  * · Idempotente: si (supplier, supplier_product_id) ya existe no se escribe ni se
  *   pisa nada (ni precio ni título editados); solo se completan variantes que falten.
- * · Con el mock activo (BD compartida con producción) NO se escribe nada: la
+ * · En simulación (mock de BigBuy; CJ salvo `CJ_IMPORT_ENABLED=1`) NO se escribe nada: la
  *   escritura es una simulación y no se llama al almacén, ni para leer.
  * · Errores: solo códigos (regla #8), nunca mensajes del proveedor ni de la BD.
  */
@@ -521,7 +521,7 @@ export async function previewImport(
     const price = input.priceRetail ?? suggestedPrice;
     const check = price === null ? null : evaluateMarginGuard(a.value.guardCost, price, params, overrides);
 
-    const mock = (deps.isMock ?? isMockEnabled)();
+    const mock = (deps.isMock ?? (() => isSimulatedImport(supplier)))();
     let alreadyImported: ImportPreviewDTO["alreadyImported"] = null;
     if (!mock) {
       const store = deps.store ?? supabaseProductStore;
@@ -593,7 +593,7 @@ export async function importProduct(
     }
     const forced = check.belowMin;
 
-    const mock = (deps.isMock ?? isMockEnabled)();
+    const mock = (deps.isMock ?? (() => isSimulatedImport(supplier)))();
     // Con el mock NUNCA se usa el almacén inyectado ni el real (BD compartida).
     const store: ProductStore = mock ? dryRunStore : (deps.store ?? supabaseProductStore);
     const rows = buildRows(product, a.value, price, input.category);

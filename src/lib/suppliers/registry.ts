@@ -1,6 +1,7 @@
 import "server-only";
 import { SupplierError } from "./errors";
 import { createBigBuyAdapter } from "./bigbuy";
+import { createCjAdapter } from "./cj";
 import { createMockBigBuyFetch, type MockFailure } from "./bigbuy/mock/transport";
 import type { SupplierAdapter, SupplierId } from "./types";
 
@@ -27,6 +28,21 @@ export function isMockEnabled(env: Env = process.env): boolean {
   if (env.BIGBUY_MOCK !== "1") return false;
   if (env.VERCEL_ENV === "production") return false;
   return env.VERCEL_ENV === "preview" || env.NODE_ENV !== "production";
+}
+
+/** El catálogo es de ejemplo. Solo existe mock de BigBuy: CJ siempre es la API real. */
+export function isCatalogMock(supplier: SupplierId, env: Env = process.env): boolean {
+  return supplier === "bigbuy" && isMockEnabled(env);
+}
+
+/**
+ * Guardar es una simulación (no escribe en la BD). BigBuy: con el mock. CJ: salvo
+ * `CJ_IMPORT_ENABLED=1`, que no se carga en ningún entorno hasta que se apruebe
+ * la importación real (fail-closed).
+ */
+export function isSimulatedImport(supplier: SupplierId, env: Env = process.env): boolean {
+  if (supplier === "cj") return env.CJ_IMPORT_ENABLED !== "1";
+  return isMockEnabled(env);
 }
 
 export type MockScenario = MockFailure | "not_configured";
@@ -73,12 +89,14 @@ export function createMockBigBuyAdapter(env: Env = process.env): SupplierAdapter
 }
 
 let bigbuy: { adapter: SupplierAdapter; mode: string } | null = null;
+let cj: SupplierAdapter | null = null;
 
-/**
- * Proveedor → adaptador. CJ ya tiene adaptador (`./cj`); se cablea aquí junto
- * con el selector del panel. Hasta entonces responde 501, sin tocar nada.
- */
+/** Proveedor → adaptador. CJ es el principal; BigBuy está aparcado. */
 export function getSupplierAdapter(id: SupplierId): SupplierAdapter {
+  if (id === "cj") {
+    cj ??= createCjAdapter();
+    return cj;
+  }
   if (id === "bigbuy") {
     // La caché va por modo: cambiar BIGBUY_MOCK / BIGBUY_MOCK_FAIL en caliente no reutiliza el adaptador anterior.
     const mode = isMockEnabled()

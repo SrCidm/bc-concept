@@ -26,18 +26,31 @@ export function ImportEmpty({
   q,
   clearHref,
   nextHref,
+  serverSearch = false,
 }: {
   q: string;
   clearHref: AppHref;
   /** Si hay más páginas y hay búsqueda de texto, ofrece seguir buscando. */
   nextHref: AppHref | null;
+  /** El proveedor busca en todo su catálogo (no página a página) y no hay filtros que quitar. */
+  serverSearch?: boolean;
 }) {
   const t = useTranslations("admin.import.empty");
   return (
     <div className="flex flex-col items-start gap-4 rounded-bc border border-bc-border bg-bc-surface p-6 md:p-8">
       <div className="max-w-prose">
-        <h2 className="font-serif text-xl text-bc-text-primary">{q ? t("searchTitle") : t("title")}</h2>
-        <p className="mt-2 text-base text-bc-text-secondary">{q ? t("searchBody", { q }) : t("body")}</p>
+        <h2 className="font-serif text-xl text-bc-text-primary">
+          {!q ? t("title") : serverSearch ? t("searchTitleServer") : t("searchTitle")}
+        </h2>
+        <p className="mt-2 text-base text-bc-text-secondary">
+          {q
+            ? serverSearch
+              ? t("searchBodyServer", { q })
+              : t("searchBody", { q })
+            : serverSearch
+              ? t("bodyServer")
+              : t("body")}
+        </p>
       </div>
       <div className="flex flex-wrap gap-3">
         {nextHref && (

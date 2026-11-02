@@ -12,6 +12,7 @@ const checkbox =
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-bc-accent focus-visible:ring-offset-2";
 
 interface Props {
+  supplier: "cj" | "bigbuy";
   q: string;
   eu: boolean;
   stock: boolean;
@@ -23,23 +24,26 @@ interface Props {
  * último). Con JS añade el estado pendiente y evita parámetros por defecto en la
  * URL. Cada búsqueda nueva vuelve a la página 1.
  */
-export function ImportSearchForm({ q, eu, stock }: Props) {
+export function ImportSearchForm({ supplier, q, eu, stock }: Props) {
   const t = useTranslations("admin.import.search");
+  // CJ lista siempre stock UE y busca por el nombre en inglés.
+  const filters = supplier === "bigbuy";
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [text, setText] = useState(q);
   const [euOnly, setEuOnly] = useState(eu);
   const [inStock, setInStock] = useState(stock);
 
-  const dirty = q !== "" || !eu || !stock || text !== "" || !euOnly || !inStock;
+  const dirty = q !== "" || text !== "" || (filters && (!eu || !stock || !euOnly || !inStock));
 
   function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const p = new URLSearchParams();
+    if (supplier !== "cj") p.set("supplier", supplier);
     const value = text.trim();
     if (value) p.set("q", value);
-    if (!euOnly) p.set("eu", "0");
-    if (!inStock) p.set("stock", "0");
+    if (filters && !euOnly) p.set("eu", "0");
+    if (filters && !inStock) p.set("stock", "0");
     const qs = p.toString();
     startTransition(() => router.push(importHref(qs)));
   }
@@ -53,6 +57,7 @@ export function ImportSearchForm({ q, eu, stock }: Props) {
       aria-busy={pending}
       className="flex flex-col gap-3 rounded-bc border border-bc-border bg-bc-surface p-4 md:flex-row md:flex-wrap md:items-end md:gap-x-6"
     >
+      {supplier !== "cj" && <input type="hidden" name="supplier" value={supplier} />}
       <label className="flex min-w-0 flex-1 flex-col gap-1.5 text-sm text-bc-text-primary md:min-w-[16rem]">
         {t("label")}
         <input
@@ -63,12 +68,12 @@ export function ImportSearchForm({ q, eu, stock }: Props) {
           maxLength={80}
           autoComplete="off"
           spellCheck={false}
-          placeholder={t("placeholder")}
+          placeholder={filters ? t("placeholder") : t("placeholderEnglish")}
           className="min-h-11 w-full rounded-bc border border-bc-border bg-bc-bg-base px-3 text-base text-bc-text-primary placeholder:text-bc-text-secondary transition-[border-color,box-shadow] duration-200 ease-bc focus-visible:border-bc-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-bc-accent"
         />
       </label>
 
-      <fieldset className="flex flex-wrap items-center gap-x-5">
+      {filters && <fieldset className="flex flex-wrap items-center gap-x-5">
         <legend className="sr-only">{t("filtersLabel")}</legend>
         <label className={checkboxLabel}>
           <input type="hidden" name="eu" value="0" />
@@ -94,7 +99,7 @@ export function ImportSearchForm({ q, eu, stock }: Props) {
           />
           {t("inStockOnly")}
         </label>
-      </fieldset>
+      </fieldset>}
 
       <div className="flex items-center gap-2">
         <button
@@ -106,7 +111,7 @@ export function ImportSearchForm({ q, eu, stock }: Props) {
         </button>
         {dirty && (
           <Link
-            href="/admin/import"
+            href={importHref(supplier === "cj" ? "" : `supplier=${supplier}`)}
             className="inline-flex min-h-11 items-center rounded-bc px-3 text-sm text-bc-text-secondary transition-[color,background-color] duration-200 ease-bc hover-fine:bg-bc-primary/10 hover-fine:text-bc-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-bc-accent"
           >
             {t("clear")}

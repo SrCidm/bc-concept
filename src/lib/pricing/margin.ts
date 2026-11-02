@@ -6,18 +6,12 @@ import "server-only";
  *   − colchón de devoluciones − coste de adquisición = margen neto
  *
  * Los parámetros NO viven aquí: los entrega una `MarginSettingsSource`
- * (`./settings.ts`: valores por defecto + overrides por env hoy; tabla editable
- * por Yosra en la Fase 3.4). `computeMargin` es una función pura.
+ * (`./settings.ts`: BD > env > valores por defecto). `computeMargin` es una función
+ * pura. El flete real de cada producto entra como `overrides.shippingCost`;
+ * `shippingCost` de `MarginParams` es el envío medio de respaldo.
  *
- * TODO(Hito 3 · Fase 3.4):
- *   · La guarda de margen será EDITABLE por Yosra desde una tabla de ajustes de
- *     admin (BD, solo service role + requireAdmin): se añade una fuente de BD en
- *     `settings.ts` sin tocar la UI ni esta fórmula.
- *   · El coste de envío NO será un valor fijo: vendrá POR PRODUCTO desde BigBuy.
- *     Ya entra como `overrides.shippingCost` de `computeMargin`; `shippingCost` de
- *     `MarginParams` queda como envío medio de respaldo.
- *   · `acquisitionCost` (ads por pedido) ya está en la fórmula (0 por defecto):
- *     en 3.4 solo hay que darle valor desde los ajustes.
+ * TODO(Hito 3 · Fase 3.4): `acquisitionCost` (ads por pedido) ya está en la fórmula
+ * (0 por defecto): solo hay que darle valor desde los ajustes.
  */
 
 export interface MarginParams {

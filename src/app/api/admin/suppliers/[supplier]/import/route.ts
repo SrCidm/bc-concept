@@ -6,6 +6,8 @@ import { parseSupplierId } from "@/lib/suppliers/registry";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+/** CJ: hasta 3 llamadas con ~2 s entre ellas, más reintentos si limita. */
+export const maxDuration = 60;
 
 /**
  * Importa un producto del proveedor como BORRADOR. Escribe con service role solo
@@ -20,7 +22,6 @@ export async function POST(req: Request, { params }: { params: { supplier: strin
     assertSameOrigin(req);
     const supplier = parseSupplierId(params.supplier);
     if (!supplier) throw new SupplierError("not_found");
-    if (supplier !== "bigbuy") throw new SupplierError("unsupported"); // CJ aún no migrado
 
     const result = await importProduct(supplier, await readJsonBody(req));
     return result.ok ? jsonNoStore(result.data) : importErrorResponse(result.code, result.check);

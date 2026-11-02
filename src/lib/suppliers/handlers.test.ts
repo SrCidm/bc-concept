@@ -45,6 +45,7 @@ mock.module("@/lib/suppliers/credentials", () => ({
   deleteApiKey: async (s: string) => {
     store.delete(s);
   },
+  createSupabaseTokenStore: () => ({ load: async () => null, save: async () => {} }),
 }));
 
 let server: ReturnType<typeof Bun.serve>;
@@ -144,13 +145,14 @@ describe("admin autenticada", () => {
     expect((await p.json()).error.code).toBe("not_configured");
   });
 
-  test("cj → 501 (también al escribir credenciales) y proveedor desconocido → 404", async () => {
-    const { status, products, creds } = await load();
-    expect((await status.GET(new Request(url("/x")), ctx("cj"))).status).toBe(501);
-    expect((await products.GET(new Request(url("/x")), ctx("cj"))).status).toBe(501);
-    const put = new Request(url("/x"), { method: "PUT", headers: sameOrigin, body: JSON.stringify({ apiKey: API_KEY }) });
-    expect((await creds.PUT(put, ctx("cj"))).status).toBe(501);
-    expect(store.size).toBe(0);
+  test("cj sin credencial → no conectado, sin llamar a CJ; proveedor desconocido → 404", async () => {
+    const { status, products } = await load();
+    const s = await status.GET(new Request(url("/x")), ctx("cj"));
+    expect(s.status).toBe(200);
+    expect(await s.json()).toMatchObject({ supplier: "cj", configured: false, mock: false, auth: { ok: false, code: "not_configured" } });
+    const p = await products.GET(new Request(url("/x")), ctx("cj"));
+    expect(p.status).toBe(503);
+    expect((await p.json()).error.code).toBe("not_configured");
     expect((await status.GET(new Request(url("/x")), ctx("foo"))).status).toBe(404);
   });
 

@@ -6,6 +6,8 @@ import { parseSupplierId } from "@/lib/suppliers/registry";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+/** CJ: hasta 3 llamadas con ~2 s entre ellas, más reintentos si limita. */
+export const maxDuration = 60;
 
 /**
  * Catálogo del proveedor para la admin. El DTO incluye coste y margen: solo
@@ -20,10 +22,9 @@ export async function GET(req: Request, { params }: { params: { supplier: string
   try {
     const id = parseSupplierId(params.supplier);
     if (!id) throw new SupplierError("not_found");
-    if (id !== "bigbuy") throw new SupplierError("unsupported"); // CJ aún no migrado
 
     const q = parseProductsQuery(new URL(req.url).searchParams);
-    const result = await listAdminCatalog(q);
+    const result = await listAdminCatalog({ ...q, supplier: id });
     if (!result.ok) {
       if (result.code === "unauthenticated" || result.code === "forbidden") {
         // La sesión caducó entre la guarda y la consulta: mismo contrato que requireAdmin.

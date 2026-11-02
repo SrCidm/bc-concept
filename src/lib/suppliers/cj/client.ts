@@ -122,6 +122,17 @@ export function isTokenRejected(e: unknown): boolean {
   return rec((e as Error & { cause?: unknown }).cause)?.tokenRejected === true;
 }
 
+/**
+ * Diagnóstico en los logs del servidor: ruta, estado y código de CJ. Nunca el
+ * cuerpo ni la cabecera. CJ limita a 3 cuentas por IP y en Vercel las IP son
+ * compartidas: ese caso se distingue para poder reconocerlo en los logs.
+ */
+function logFailure(path: string, status: number, body: unknown): void {
+  const envelope = rec(body);
+  const sharedIp = typeof envelope?.message === "string" && /one ip limit/i.test(envelope.message);
+  console.error(`[cj] ${path} HTTP ${status} code=${String(envelope?.code ?? "-")}${sharedIp ? " límite por IP compartida" : ""}`);
+}
+
 export interface CjClient {
   call(req: CjRequest): Promise<unknown>;
 }
@@ -169,7 +180,9 @@ export function createCjClient(deps: CjClientDeps = {}): CjClient {
         cache: "no-store",
       });
       const body: unknown = await res.json().catch(() => null);
-      return classifyCjResponse(res.status, body);
+      const outcome = classifyCjResponse(res.status, body);
+      if (outcome.kind !== "ok") logFailure(req.path, res.status, body);
+      return outcome;
     } catch (e) {
       const aborted = e instanceof Error && e.name === "AbortError";
       return { kind: "retry", code: aborted ? "timeout" : "upstream" };

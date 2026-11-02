@@ -6,8 +6,8 @@ import { marginSettings } from "@/lib/pricing/settings";
 import { toAdminPageDTO } from "@/lib/suppliers/dto";
 import type { AdminProductPageDTO } from "@/lib/suppliers/dto.types";
 import { isSupplierError, type SupplierErrorCode } from "@/lib/suppliers/errors";
-import { getSupplierAdapter, isMockEnabled } from "@/lib/suppliers/registry";
-import type { SupplierAdapter } from "@/lib/suppliers/types";
+import { getSupplierAdapter, isCatalogMock } from "@/lib/suppliers/registry";
+import type { SupplierAdapter, SupplierId } from "@/lib/suppliers/types";
 
 /**
  * Catálogo del proveedor para el panel. ESTA es la función que trae el coste.
@@ -24,6 +24,8 @@ import type { SupplierAdapter } from "@/lib/suppliers/types";
  */
 
 export interface AdminCatalogQuery {
+  /** Por defecto, el proveedor principal (CJ). */
+  supplier?: SupplierId;
   page: number;
   pageSize: number;
   category?: string;
@@ -62,7 +64,8 @@ export async function listAdminCatalog(
 
   // 2) Proveedor.
   try {
-    const adapter = (deps.getAdapter ?? (() => getSupplierAdapter("bigbuy")))();
+    const supplier = query.supplier ?? "cj";
+    const adapter = (deps.getAdapter ?? (() => getSupplierAdapter(supplier)))();
     const page = await adapter.listProducts({
       page: query.page,
       pageSize: query.pageSize,
@@ -79,7 +82,7 @@ export async function listAdminCatalog(
     return {
       ok: true,
       data: toAdminPageDTO(page, params, fx),
-      source: (deps.isMock ?? isMockEnabled)() ? "mock" : "live",
+      source: (deps.isMock ?? (() => isCatalogMock(supplier)))() ? "mock" : "live",
     };
   } catch (e) {
     if (isSupplierError(e)) return { ok: false, code: e.code };

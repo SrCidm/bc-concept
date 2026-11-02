@@ -2,10 +2,11 @@ import { requireAdmin } from "@/lib/auth/requireAdmin";
 import { adminErrorResponse, jsonNoStore } from "@/lib/api/admin";
 import { getCredentialStatus } from "@/lib/suppliers/credentials";
 import { SupplierError } from "@/lib/suppliers/errors";
-import { getMockFailure, getSupplierAdapter, isMockEnabled, parseSupplierId } from "@/lib/suppliers/registry";
+import { getMockFailure, getSupplierAdapter, isCatalogMock, parseSupplierId } from "@/lib/suppliers/registry";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+export const maxDuration = 60;
 
 /** Estado de la credencial del proveedor. NUNCA devuelve la API key. */
 export async function GET(_req: Request, { params }: { params: { supplier: string } }) {
@@ -15,10 +16,10 @@ export async function GET(_req: Request, { params }: { params: { supplier: strin
   try {
     const id = parseSupplierId(params.supplier);
     if (!id) throw new SupplierError("not_found");
-    const adapter = getSupplierAdapter(id); // 501 si el proveedor aún no está migrado
+    const adapter = getSupplierAdapter(id);
 
     // Con el mock activo (solo fuera de producción) el estado lo decide el adaptador simulado.
-    const mock = isMockEnabled();
+    const mock = isCatalogMock(id);
     const status = mock
       ? { configured: getMockFailure() !== "not_configured", source: "none" as const, updatedAt: null }
       : await getCredentialStatus(id);
