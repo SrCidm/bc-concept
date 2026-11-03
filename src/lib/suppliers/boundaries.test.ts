@@ -97,7 +97,27 @@ describe("fronteras de la regla #1 (coste solo en superficies admin)", () => {
       const handlers = f.src.match(/export async function (GET|POST|PUT|PATCH|DELETE)\s*\([^)]*\)\s*\{\s*const admin = await requireAdmin\(\);\s*if \(!admin\.ok\) return admin\.response;/g) ?? [];
       const declared = f.src.match(/export async function (GET|POST|PUT|PATCH|DELETE)\b/g) ?? [];
       expect({ route: f.rel, guarded: handlers.length }).toEqual({ route: f.rel, guarded: declared.length });
+      // Sin funciones propias, los handlers salen de una factoría vigilada (abajo); nada más.
+      const fromFactory = /export const \{ (?:GET|POST|PUT|PATCH|DELETE)(?:, (?:GET|POST|PUT|PATCH|DELETE))* \} = productRoutes\(\)\.\w+;/.test(f.src);
+      expect({ route: f.rel, exports: declared.length > 0 || fromFactory }).toEqual({ route: f.rel, exports: true });
+      if (fromFactory) expect({ route: f.rel, mixed: declared.length }).toEqual({ route: f.rel, mixed: 0 });
     }
+  });
+
+  test("la factoría de rutas de productos llama a requireAdmin en la primera línea de cada handler", () => {
+    const f = files.find((x) => x.rel === "lib/api/productRoutes.ts");
+    expect(f).toBeDefined();
+    const src = f!.src;
+    const declared = src.match(/async (GET|POST|PUT|PATCH|DELETE)\(/g) ?? [];
+    const guardedHandlers = src.match(/async (GET|POST|PUT|PATCH|DELETE)\([^)]*\)\s*\{\s*const admin = await requireAdmin\(\);\s*if \(!admin\.ok\) return admin\.response;/g) ?? [];
+    expect(declared.length).toBe(6);
+    expect(guardedHandlers.length).toBe(declared.length);
+    // Por defecto, la guarda real (los tests pasan la suya, nunca se sustituye el módulo).
+    expect(src).toMatch(/import \{ requireAdmin as defaultRequireAdmin, type AdminAuth \} from "@\/lib\/auth\/requireAdmin";/);
+    expect(src).toMatch(/const requireAdmin = deps\.requireAdmin \?\? \(\(\) => defaultRequireAdmin\(\)\);/);
+    // Y los route.ts usan la factoría sin dependencias (las reales).
+    const users = files.filter((x) => /productRoutes\(\)/.test(x.src) && x.rel.startsWith("app/")).map((x) => x.rel);
+    expect(users.length).toBe(5);
   });
 
   test("cada page.tsx del panel llama a requireAdminPage() en su primera línea (el layout NO basta)", () => {
