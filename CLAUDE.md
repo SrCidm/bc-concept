@@ -5,7 +5,7 @@ Guía persistente para Claude Code. Tienda de **dropshipping de decoración de h
 ## Estado actual
 - **Hito 1 (frontend base) cerrado:** i18n bilingüe, Header/Footer, Hero, componentes base, seguridad de BD v2.
 - **Hito 2 cerrado:** catálogo real desde `products_public`, `ProductCard`, buscador tolerante a erratas (`pg_trgm` + `unaccent`), pulido visual y motion del storefront.
-- **Trabajando en: Hito 3** — CJ como proveedor principal (adaptador, tipo de cambio, flete real y selector hechos; importación real pendiente de aprobar). Pendiente 3.4b: publicar `draft→active`. Desplegado en Vercel para que Yosra pruebe el panel (ver Despliegue).
+- **Trabajando en: Hito 3** — CJ como proveedor principal (adaptador, tipo de cambio, flete real y selector hechos; importación real pendiente de aprobar) y **3.4b revisar y publicar** (`/admin/productos`, hecho; pendiente de probar en la preview con un borrador de prueba). Desplegado en Vercel para que Yosra pruebe el panel (ver Despliegue).
 
 ## Storefront: rutas y páginas
 - **Rutas localizadas** (next-intl `pathnames` en `src/i18n/routing.ts`): clave = carpeta interna, valor = URL por idioma. Colección `/coleccion` · `/en/collection` (carpeta `catalog`), `/sobre-nosotros` · `/en/about`, `/contacto` · `/en/contact`. `Link`/`router` de `@/i18n/navigation` están **tipados** (`AppHref`/`StaticHref`/`RouterHref`): solo claves de `pathnames`; con query, `{ pathname, query }`. Ruta nueva → añadirla a `pathnames`.
@@ -13,6 +13,7 @@ Guía persistente para Claude Code. Tienda de **dropshipping de decoración de h
 - **Sobre nosotros: copy en BORRADOR pendiente de revisión** (Sergio + Yosra), sin años, cifras ni promesas. "Solo piezas enviadas desde almacenes en la UE" es correcto para el catálogo: la importación es fail-closed (solo entra almacén UE explícito); la deuda del filtro UE afecta solo al listado del panel.
 - **Contacto:** email desde `CONTACT_EMAIL` (servidor, leída en el build: cambiarla = redesplegar; validada en `lib/contact.ts`). Sin ella la página no muestra ningún email. Plazo: "Solemos responder en 1–2 días laborables". Sin formulario.
 
+- **Textos EN:** `products_public` expone `title_en`/`description_en`/`slug_en`; en `/en` la tarjeta usa el título EN y, si no hay, el de ES (`localizedTitle` en `lib/catalog/products.ts`).
 - **Colección: `?q=&cat=&page=` combinables** (`lib/catalog/params.ts`, función pura con tests). `cat` validada contra `STORE_CATEGORIES` (lista única en `lib/catalog/categories.ts`; `lib/admin/import.types` la reexporta): desconocida = colección completa. Página inválida = 1. Filtro visible y quitable (`CategoryFilter`: píldoras, la activa con ×; "Todas"), `CatalogPagination` (24 por página, conserva q y cat). **Límite:** con `q`, filtro y paginación trabajan dentro de los 48 mejores resultados de la RPC `search_products_public` (LIMIT 48 en SQL); ampliarlo exige migración.
 
 ## Storefront: home
@@ -33,6 +34,7 @@ Guía persistente para Claude Code. Tienda de **dropshipping de decoración de h
 - **Importación (3.3):** botón "Importar" en cada tarjeta → modal (`ImportDialog`). El servidor calcula y valida TODO: `lib/pricing/{margin,settings,guard}.ts` (guarda de margen; defaults en `settings.ts` + overrides `MARGIN_*`; `marginSettings()` es el único punto a cambiar en 3.4) y `lib/admin/importProduct.ts` (`previewImport`/`importProduct`, auto-guardados). El cliente solo manda id, PVP, categoría (`STORE_CATEGORIES` en `lib/admin/import.types.ts`) y confirmación; coste/almacén/variantes salen del proveedor. Por debajo del mínimo (15 %) exige `confirmBelowMargin` (422 si no). Solo almacén UE explícito (fail-closed); coste siempre en EUR. Escribe `products` + `product_variants` en `draft` con service role; idempotente (`ignoreDuplicates`, no pisa nada). **Simulación sin escribir nada** con `BIGBUY_MOCK` (dev comparte BD con producción) y con CJ salvo `CJ_IMPORT_ENABLED=1`.
 - **Ajustes de margen (3.4a):** `/admin/ajustes` → tabla `margin_settings` de **solo inserción** (cada guardado = fila nueva; la vigente es la más reciente; grants SELECT+INSERT solo a service_role + trigger que impide UPDATE/DELETE/TRUNCATE). Precedencia **BD > `MARGIN_*` > defaults**; si la BD falla, entorno/defaults con aviso "degradado". IVA fijo en código (`VAT_PCT = 21`). Estado de la fuente **único por proceso** (`globalThis`, porque Next empaqueta cada ruta por separado): guardar invalida la caché (30 s) que lee el modal. `lib/pricing/{settings,settingsInput,settingsStore}.ts` + `lib/admin/marginSettings.ts` (auto-guardadas). Dev sin tocar la BD: `MARGIN_SETTINGS_MEMORY=1` (ignorado en producción). Los tests nunca leen la BD real (`test/setup.ts` sustituye el almacén).
 - **Revisar y publicar (3.4b):** `lib/admin/products.ts` (listado, ficha, guardar, muestra, descartar, despublicar) y `lib/admin/publishProduct.ts`, auto-guardados; escriben SOLO por las funciones `admin_*` de la BD (cambio + evento en `product_events` en una transacción). Solo se edita un `draft`; un activo es de solo lectura (se despublica, se edita y se vuelve a publicar). Publicar vuelve a pedir el producto al proveedor sin caché (stock UE, flete con plazo, tipo ≤ 4 días) y exige textos ES revisados (distintos del original del proveedor, normalizado; EN igual si se rellena), categoría, muestra verificada y margen ≥ mínimo; si el margen bajó desde la importación hay que confirmarlo. **Los slugs ES/EN se fijan al publicar por primera vez y NO cambian** aunque se despublique y se cambie el título (URLs estables). BigBuy no se puede publicar mientras no dé flete por pieza.
+- **`/admin/productos` (UI 3.4b):** listado (filtros `?status=&supplier=&page=`) y ficha `/admin/productos/[id]` en `components/admin/products/*`: textos ES/EN, categoría, PVP con la guarda en vivo (`/margin`, coste y flete guardados con el tipo y los ajustes de hoy), muestra, publicación e historial. Los motivos de rechazo salen todos a la vez, en frases (`admin.products.edit.reasons|failures`) con enlace al campo (`fields.ts`). Descartar y la bajada de margen se confirman en `ConfirmDialog` (`<dialog>`, nunca `confirm()`). Publicar se bloquea con cambios sin guardar.
 - **Limitación conocida (solo BigBuy):** la búsqueda por texto filtra los productos de cada página que devuelve BigBuy (el endpoint de búsqueda real no está confirmado); por eso la UI dice "X de N revisados" y ofrece "Siguiente".
 
 ## Despliegue (Vercel)
@@ -45,6 +47,7 @@ Guía persistente para Claude Code. Tienda de **dropshipping de decoración de h
 ## Comandos
 - Runtime: **Bun** (nunca npm/yarn). `bun install`, `bun run dev`, `bun run build`.
 - **`bun run build` debe pasar sin errores de TypeScript ni ESLint antes de dar nada por terminado.** Es el criterio de "hecho".
+- **Tests sin dependencias de orden:** las rutas de `/api/admin/**` son factorías con dependencias inyectables (`lib/api/{productRoutes,supplierRoutes,settingsRoutes}.ts`); los tests les pasan sesión, almacenes y adaptadores (`test/routesKit.ts`, `test/productsKit.ts`). Nada de `mock.module` salvo los globales de `test/setup.ts` (lo vigila `boundaries.test.ts`). Comprobar con `bun test --randomize --seed N`.
 
 ## Stack y convenciones
 - Next.js 14 App Router · **TypeScript strict** (sin `any`, sin `@ts-ignore`).
@@ -83,16 +86,17 @@ Guía persistente para Claude Code. Tienda de **dropshipping de decoración de h
 **De lanzamiento (no se abre la tienda sin resolverlos):**
 - **IVA y facturas con CJ:** pendiente del gestor. La API no dice si `sellPrice` incluye IVA ni ofrece facturas, y el vendedor del stock ES es una empresa de Hong Kong (¿quién vende y quién factura?).
 - **Devoluciones:** la API de CJ no da dirección ni proceso de devolución (solo disputas: reembolso o reenvío), y el pie promete "Devoluciones (14 días)". Hay que definir dirección y proceso.
+- **Imágenes: copiar a Supabase Storage al publicar + permitir subir fotos propias.** Hoy las imágenes son URLs del CDN de CJ (`cf.cjdropshipping.com`) y se ven en el HTML de la tienda (`/_next/image?url=…`): delatan al proveedor. Hito propio: probablemente se usarán fotos nuestras de las muestras.
+- **Ficha de producto:** no existe. `ProductCard` enlaza a `/product/[slug]` (en `pathnames`, sin página) → 404. Siguiente hito.
 
 **Del hito de pedidos:** cifrar los tokens de `supplier_credentials` (Supabase Vault) ANTES de activar `createOrder`.
-
-**De la Fase 3.4b (publicar `draft→active`):** publicar exige "verificado con muestra" (campo en `products`, lo marca un admin). Sin muestra verificada no se publica.
 
 **Riesgo por confirmar:** la documentación de puntos de CJ dice que 30 días seguidos sin transacciones revocan el acceso a la API (`1600014`). Con la tienda sin lanzar podría afectarnos; lo confirma Sergio con el soporte de CJ.
 
 ## Deuda anotada (Hito 3)
 - **Filtro UE fail-closed** (crítico): hoy `isEuWarehouse(null)` asume UE. Al validar contra el sandbox de BigBuy (cuando llegue `BIGBUY_API_KEY`) debe pasar a "almacén desconocido = NO elegible UE" (excluir o marcar). Ver TODO en `src/lib/suppliers/bigbuy/warehouses.ts`.
-- **Categoría y publicación (Fase 3.4):** la categoría es OBLIGATORIA para publicar (`draft→active`); en `draft` puede quedar sin categoría (el modal de importación la deja opcional). La acción de publicar debe rechazar `category` nulo.
+- **Vigilancia diaria de coste/stock de productos activos:** si el margen cae bajo el mínimo o el stock UE llega a 0, alertar y despublicar. Hoy la guarda fresca solo corre al publicar.
+- **Actualizar impeccable tras el hito** (instalada v4.0.4, hay v4.8.0): `npx impeccable update`; se aplica en la sesión siguiente.
 - Valorar cifrar también `api_key` (Supabase Vault) junto con los tokens.
 - **Índice curado de CJ en BD (mejora pendiente):** hoy cada instancia de Vercel lo reconstruye en memoria (~24 s en frío y, con varias instancias a la vez, riesgo de `1600200`/429). Persistirlo en una tabla solo para service_role (sin grants a anon/authenticated) y refrescarlo con un cron diario de Vercel; el listado lee de la tabla.
 - **La cuadrícula calcula un margen que no muestra:** `toAdminPageDTO` (`lib/suppliers/dto.ts`) deriva margen con el envío medio para cada tarjeta y `ImportCard` no lo pinta. Quitar ese cálculo (y su campo del DTO) o mostrarlo; el margen válido es el del modal.
