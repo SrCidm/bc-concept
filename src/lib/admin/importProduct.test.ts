@@ -856,6 +856,41 @@ describe("flete real del proveedor", () => {
     expect(mem.variants[0].inventory).toBe(40);
   });
 
+  test("guarda el texto original del proveedor y el flete en su moneda (para revisar y recalcular)", async () => {
+    const { deps, mem } = withRoute(async () => ROUTE);
+    await importProduct("cj", input, deps);
+    const row = mem.products.get("cj:p1")!.row;
+    expect(row).toMatchObject({
+      title: "Lámpara de mesa de cerámica",
+      supplier_title: "Lámpara de mesa de cerámica",
+      description: "Lámpara cálida & serena.",
+      supplier_description: "Lámpara cálida & serena.",
+      shipping_cost_original: 9.92,
+    });
+  });
+
+  test("un borrador nuevo deja su evento `import` con quién lo importó", async () => {
+    const { deps, mem } = withRoute(async () => ROUTE);
+    const events: unknown[] = [];
+    mem.store.recordImport = async (e) => void events.push(e);
+    await importProduct("cj", input, deps);
+    expect(events).toEqual([
+      { productId: "p-1", supplier: "cj", supplierProductId: "p1", actor: "yosra@bc.com", price: 44.9, forced: false, marginPct: expect.any(Number) },
+    ]);
+    // Importarlo otra vez no crea nada ni deja otro evento.
+    await importProduct("cj", input, deps);
+    expect(events).toHaveLength(1);
+  });
+
+  test("si falla el historial, el borrador queda importado igualmente", async () => {
+    const { deps, mem } = withRoute(async () => ROUTE);
+    mem.store.recordImport = async () => {
+      throw new Error("bd caída");
+    };
+    const r = await importProduct("cj", input, deps);
+    expect(r.ok && r.data.persisted).toBe(true);
+  });
+
   test("sin ruta a España: no importable, sin caer al envío medio ni escribir", async () => {
     const { deps, mem } = withRoute(async () => null);
     expect(await previewImport("cj", input, deps)).toEqual({ ok: false, code: "no_shipping_route" });

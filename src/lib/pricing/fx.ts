@@ -59,7 +59,8 @@ export function usdToEur(amountUsd: number, rate: number): number {
   return Math.round(amountUsd * rate * 100) / 100;
 }
 
-function ageInDays(rateDate: string, now: number): number {
+/** Días naturales (UTC) entre la publicación del tipo y hoy. */
+export function fxAgeDays(rateDate: string, now: number): number {
   const published = Date.parse(`${rateDate}T00:00:00Z`);
   const today = Date.parse(new Date(now).toISOString().slice(0, 10) + "T00:00:00Z");
   return Math.round((today - published) / DAY_MS);
@@ -112,7 +113,7 @@ export function createFxSource(deps: {
 
   /** Solo vale si no es futuro ni tiene 7 días o más. */
   function quote(rate: number, rateDate: string, stale: boolean): FxQuote {
-    const ageDays = ageInDays(rateDate, now());
+    const ageDays = fxAgeDays(rateDate, now());
     return Number.isFinite(ageDays) && ageDays >= 0 && ageDays < FX_MAX_AGE_DAYS
       ? { ok: true, rate, rateDate, ageDays, stale }
       : { ok: false };

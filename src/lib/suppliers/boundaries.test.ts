@@ -37,7 +37,7 @@ function walk(dir: string, out: string[] = []): string[] {
 const DTO_TYPES_IMPORT = /import\s+type\s+\{[^}]*\}\s+from\s+["']@\/lib\/suppliers\/dto\.types["'];?/g;
 
 /** Contrato client-safe del flujo de importación (tipos y constantes, sin server-only): también admitido. */
-const IMPORT_TYPES_IMPORT = /import\s+(?:type\s+)?\{[^}]*\}\s+from\s+["']@\/lib\/admin\/(?:import|settings)\.types["'];?/g;
+const IMPORT_TYPES_IMPORT = /import\s+(?:type\s+)?\{[^}]*\}\s+from\s+["']@\/lib\/admin\/(?:import|settings|products)\.types["'];?/g;
 
 const files = walk(SRC).map((f) => {
   const rel = relative(SRC, f).split(sep).join("/");
@@ -275,10 +275,13 @@ describe("fronteras de la regla #1 (coste solo en superficies admin)", () => {
     expect(grants.map((m) => m[2]).sort()).toEqual(["product_variants", "products"]);
     for (const m of grants) expect({ table: m[2], leaks: BANNED.test(m[1]) }).toEqual({ table: m[2], leaks: false });
     // Vista pública (schema y migración): lista de columnas sin datos internos y solo activos.
-    for (const file of [sql, readFileSync(join(ROOT, "supabase", "migration_v2_2_catalog.sql"), "utf8").replace(/--.*$/gm, "")]) {
-      const view = file.match(/CREATE\s+VIEW\s+(?:public\.)?products_public[\s\S]*?SELECT([\s\S]*?)FROM[\s\S]*?WHERE\s+status\s*=\s*'active'/i);
-      expect(view).not.toBeNull();
-      expect(BANNED.test(view![1])).toBe(false);
+    for (const name of ["migration_v2_2_catalog.sql", "migration_v2_7_publish.sql", "schema.sql"]) {
+      const file = readFileSync(join(ROOT, "supabase", name), "utf8").replace(/--.*$/gm, "");
+      const views = [...file.matchAll(/CREATE\s+(?:OR\s+REPLACE\s+)?VIEW\s+(?:public\.)?products_public[\s\S]*?SELECT([\s\S]*?)FROM[\s\S]*?WHERE\s+status\s*=\s*'active'/gi)];
+      expect({ name, views: views.length > 0 }).toEqual({ name, views: true });
+      for (const v of views) {
+        expect({ name, leaks: BANNED.test(v[1]) || /supplier|sample_|published_at|shipping_|weight/.test(v[1]) }).toEqual({ name, leaks: false });
+      }
     }
     // Y la consulta pública del storefront.
     const publicCols = readFileSync(join(SRC, "lib", "catalog", "products.ts"), "utf8").match(/"id, slug[^"]*"/)?.[0] ?? "";
@@ -327,6 +330,56 @@ describe("fronteras de la regla #1 (coste solo en superficies admin)", () => {
       expect(sql).toMatch(/BEFORE UPDATE OR DELETE ON public\.margin_settings\s+FOR EACH ROW EXECUTE FUNCTION public\.margin_settings_append_only\(\)/);
       expect(sql).toMatch(/BEFORE TRUNCATE ON public\.margin_settings\s+FOR EACH STATEMENT EXECUTE FUNCTION public\.margin_settings_append_only\(\)/);
       expect(sql).toMatch(/margin_settings_append_only\(\)[\s\S]*?SET search_path = ''/);
+    }
+  });
+
+  test("products.types.ts es client-safe (sin server-only ni imports de runtime)", () => {
+    const f = files.find((x) => x.rel === "lib/admin/products.types.ts");
+    expect(f).toBeDefined();
+    const code = f!.src.replace(/\/\*[\s\S]*?\*\/|\/\/.*$/gm, "");
+    expect(code).not.toContain("server-only");
+    for (const line of code.match(/^\s*import\b.*$/gm) ?? []) expect(line).toMatch(/^\s*import\s+type\b/);
+  });
+
+  test("products y product_events solo se escriben por las funciones admin_* (y la importación)", () => {
+    const code = (src: string) => src.replace(/\/\*[\s\S]*?\*\/|\/\/.*$/gm, "");
+    // El repositorio del panel no escribe tablas directamente: todo va por RPC.
+    const repo = files.find((x) => x.rel === "lib/admin/productRepo.ts");
+    expect(code(repo?.src ?? "")).not.toMatch(/\.(insert|update|delete|upsert)\s*\(/);
+    for (const fn of ["admin_save_product", "admin_set_sample", "admin_publish_product", "admin_unpublish_product", "admin_discard_product"]) {
+      expect(repo?.src).toContain(`rpc("${fn}"`);
+    }
+    // Solo el panel de productos usa el repositorio.
+    const users = files.filter((x) => /from\s+["']\.\/productRepo["']|@\/lib\/admin\/productRepo/.test(x.src)).map((x) => x.rel).sort();
+    expect(users).toEqual(["lib/admin/products.ts", "lib/admin/publishProduct.ts"]);
+    // product_events: la importación solo INSERTA; nadie lo actualiza ni lo borra.
+    const writers = files
+      .filter((x) => /from\(\s*["']product_events["']\s*\)\s*\.(insert|update|delete|upsert)/.test(code(x.src).replace(/\s+/g, " ")))
+      .map((x) => x.rel);
+    expect(writers).toEqual(["lib/admin/importProduct.ts"]);
+    expect(code(files.find((x) => x.rel === "lib/admin/importProduct.ts")!.src)).not.toMatch(/product_events["']\s*\)\s*\.(update|delete|upsert)/);
+  });
+
+  test("product_events: solo backend, solo inserción, mismo blindaje que margin_settings", () => {
+    for (const file of ["schema.sql", "migration_v2_7_publish.sql"]) {
+      const sql = readFileSync(join(ROOT, "supabase", file), "utf8").replace(/--.*$/gm, "");
+      expect(sql).toMatch(/ALTER TABLE public\.product_events ENABLE ROW LEVEL SECURITY/);
+      expect(sql).toMatch(/REVOKE ALL ON public\.product_events FROM PUBLIC, anon, authenticated/);
+      expect(sql).toMatch(/REVOKE UPDATE, DELETE, TRUNCATE[^;]*ON public\.product_events FROM service_role/);
+      const grants = [...sql.matchAll(/GRANT\s+([^;]*?)\s+ON\s+public\.product_events\s+TO\s+(\w+)/gi)].map((m) => `${m[1]} → ${m[2]}`);
+      expect(grants).toEqual(["SELECT, INSERT → service_role"]);
+      expect(sql).not.toMatch(/CREATE POLICY[^;]*product_events/i);
+      expect(sql).toMatch(/BEFORE UPDATE OR DELETE ON public\.product_events\s+FOR EACH ROW EXECUTE FUNCTION public\.product_events_append_only\(\)/);
+      expect(sql).toMatch(/BEFORE TRUNCATE ON public\.product_events\s+FOR EACH STATEMENT EXECUTE FUNCTION public\.product_events_append_only\(\)/);
+      // Funciones admin_*: EXECUTE solo para service_role, con search_path fijo.
+      const fns = [...sql.matchAll(/CREATE OR REPLACE FUNCTION public\.(admin_\w+)\(/g)].map((m) => m[1]);
+      expect(fns.sort()).toEqual(["admin_discard_product", "admin_publish_product", "admin_save_product", "admin_set_sample", "admin_unpublish_product"]);
+      for (const fn of fns) {
+        expect(sql).toMatch(new RegExp(`REVOKE EXECUTE ON FUNCTION public\\.${fn}\\([^)]*\\) FROM PUBLIC, anon, authenticated`));
+        expect(sql).toMatch(new RegExp(`GRANT\\s+EXECUTE ON FUNCTION public\\.${fn}\\([^)]*\\) TO service_role`));
+        expect(sql).not.toMatch(new RegExp(`${fn}[\\s\\S]*?SECURITY DEFINER[\\s\\S]*?\\$\\$;`));
+      }
+      expect(sql).not.toMatch(/GRANT[^;]*admin_\w+[^;]*TO (anon|authenticated)/);
     }
   });
 

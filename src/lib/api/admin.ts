@@ -1,6 +1,7 @@
 import "server-only";
 import { NextResponse } from "next/server";
 import { IMPORT_ERROR_STATUS, type ImportErrorCode, type MarginCheckDTO } from "@/lib/admin/import.types";
+import { PRODUCT_ERROR_STATUS, type ProductErrorCode, type PublishReason } from "@/lib/admin/products.types";
 import { MARGIN_SETTINGS_ERROR_STATUS, type MarginSettingsErrorCode } from "@/lib/admin/settings.types";
 import { SupplierError, isSupplierError } from "@/lib/suppliers/errors";
 
@@ -86,14 +87,16 @@ export function parseProductsQuery(params: URLSearchParams): ProductsQuery {
 }
 
 const MAX_BODY_BYTES = 4_096;
+/** Textos ES/EN de un producto (2 × 5.000 caracteres más títulos y escapes JSON). */
+export const PRODUCT_TEXT_BODY_BYTES = 32_768;
 
 /** Cuerpo JSON pequeño y bien tipado, o `invalid_request` (sin eco de lo recibido). */
-export async function readJsonBody(req: Request): Promise<unknown> {
+export async function readJsonBody(req: Request, maxBytes = MAX_BODY_BYTES): Promise<unknown> {
   if (!req.headers.get("content-type")?.toLowerCase().includes("application/json")) {
     throw new SupplierError("invalid_request");
   }
   const text = await req.text();
-  if (text.length === 0 || text.length > MAX_BODY_BYTES) throw new SupplierError("invalid_request");
+  if (text.length === 0 || text.length > maxBytes) throw new SupplierError("invalid_request");
   try {
     return JSON.parse(text);
   } catch {
@@ -106,6 +109,27 @@ export function importErrorResponse(code: ImportErrorCode, check?: MarginCheckDT
   return NextResponse.json(
     { error: { code }, ...(check ? { check } : {}) },
     { status: IMPORT_ERROR_STATUS[code], headers: NO_STORE }
+  );
+}
+
+/**
+ * Fallo de /admin/productos: el código y, si los hay, los motivos de publicación,
+ * la guarda y la bajada de margen (datos de admin). Nunca texto de proveedor ni de BD.
+ */
+export function productErrorResponse(failure: {
+  code: ProductErrorCode;
+  reasons?: ReadonlyArray<PublishReason>;
+  check?: MarginCheckDTO;
+  marginDrop?: { fromPct: number; toPct: number };
+}): NextResponse {
+  const { code, reasons, check, marginDrop } = failure;
+  return NextResponse.json(
+    {
+      error: { code, ...(reasons && reasons.length ? { reasons } : {}) },
+      ...(check ? { check } : {}),
+      ...(marginDrop ? { marginDrop } : {}),
+    },
+    { status: PRODUCT_ERROR_STATUS[code], headers: NO_STORE }
   );
 }
 
