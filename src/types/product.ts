@@ -16,6 +16,10 @@ export interface ProductPublic {
   delivery_min_days: number;
   delivery_max_days: number;
   created_at: string;
+  /** Textos y slug EN (opcionales): sin ellos, la tienda en inglés usa los de ES. */
+  title_en: string | null;
+  description_en: string | null;
+  slug_en: string | null;
 }
 
 /** Forma cruda tal como la devuelve PostgREST (images es JSONB, numeric puede venir como string). */
@@ -33,4 +37,7 @@ export interface ProductPublicRow {
   delivery_min_days: number | null;
   delivery_max_days: number | null;
   created_at: string;
+  title_en?: string | null;
+  description_en?: string | null;
+  slug_en?: string | null;
 }

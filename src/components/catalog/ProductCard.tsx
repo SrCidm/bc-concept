@@ -2,6 +2,7 @@ import Image from "next/image";
 import { getLocale } from "next-intl/server";
 import { Link, type AppHref } from "@/i18n/navigation";
 import { DeliveryBadge } from "@/components/ui/DeliveryBadge";
+import { localizedTitle } from "@/lib/catalog/products";
 import type { ProductPublic } from "@/types/product";
 
 interface ProductCardProps {
@@ -23,6 +24,7 @@ export async function ProductCard({ product, priority = false }: ProductCardProp
     currency: product.currency,
   }).format(product.price_retail);
   const image = product.images[0];
+  const title = localizedTitle(product, locale);
   const href: AppHref = product.slug
     ? { pathname: "/product/[slug]", params: { slug: product.slug } }
     : "/catalog";
@@ -43,7 +45,7 @@ export async function ProductCard({ product, priority = false }: ProductCardProp
         {image && (
           <Image
             src={image}
-            alt={product.title}
+            alt={title}
             fill
             priority={priority}
             sizes="(min-width: 1024px) 25vw, (min-width: 640px) 33vw, 50vw"
@@ -58,7 +60,7 @@ export async function ProductCard({ product, priority = false }: ProductCardProp
           </span>
         )}
         <h3 className="font-serif text-lg leading-snug text-bc-text-primary line-clamp-2 transition-colors duration-200 ease-bc group-hover:text-bc-accent">
-          {product.title}
+          {title}
         </h3>
         <p className="text-base text-bc-text-primary tabular-nums">{price}</p>
         <DeliveryBadge

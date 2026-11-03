@@ -4,7 +4,7 @@ import { PAGE_SIZE, type CatalogParams } from "./params";
 
 /** Lista explícita: nunca `select("*")` (regla #1). */
 const PUBLIC_COLUMNS =
-  "id, slug, title, description, price_retail, currency, images, category, inventory, warehouse, delivery_min_days, delivery_max_days, created_at";
+  "id, slug, title, description, price_retail, currency, images, category, inventory, warehouse, delivery_min_days, delivery_max_days, created_at, title_en, description_en, slug_en";
 
 /** Tope de la RPC de búsqueda (LIMIT 48 en SQL): q + cat + página trabajan dentro de él. */
 const SEARCH_MAX_ROWS = 48;
@@ -37,7 +37,15 @@ function toProduct(row: ProductPublicRow): ProductPublic {
     delivery_min_days: row.delivery_min_days ?? 3,
     delivery_max_days: row.delivery_max_days ?? 7,
     created_at: row.created_at,
+    title_en: row.title_en ?? null,
+    description_en: row.description_en ?? null,
+    slug_en: row.slug_en ?? null,
   };
+}
+
+/** Título para el idioma de la página: en inglés, el EN si existe; si no (o en español), el ES. */
+export function localizedTitle(p: Pick<ProductPublic, "title" | "title_en">, locale: string): string {
+  return locale === "en" && p.title_en?.trim() ? p.title_en.trim() : p.title;
 }
 
 /**

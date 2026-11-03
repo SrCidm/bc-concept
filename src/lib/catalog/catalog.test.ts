@@ -108,3 +108,29 @@ describe("getCatalogProducts: filtro y paginación sobre la misma consulta", () 
     expect(await getCatalogProducts({ q: "", cat: "lighting", page: 1 }, { client: f.client })).toEqual({ ok: false });
   });
 });
+
+describe("textos EN de la tienda", () => {
+  test("en /en se usa el título EN; sin él (o vacío), el de ES; en ES siempre el de ES", async () => {
+    const { localizedTitle } = await import("./products");
+    const p = { title: "Cojín pompones terracota", title_en: "Terracotta pom-pom cushion" };
+    expect(localizedTitle(p, "en")).toBe("Terracotta pom-pom cushion");
+    expect(localizedTitle(p, "es")).toBe("Cojín pompones terracota");
+    expect(localizedTitle({ ...p, title_en: null }, "en")).toBe("Cojín pompones terracota");
+    expect(localizedTitle({ ...p, title_en: "   " }, "en")).toBe("Cojín pompones terracota");
+  });
+
+  test("la consulta pública pide solo columnas públicas (también las EN) y las devuelve", async () => {
+    const f = fakeClient({ data: [{ ...row(1), title_en: "Piece 1", description_en: null, slug_en: "piece-1" }], count: 1 });
+    const r = await getCatalogProducts({ q: "", cat: null, page: 1 }, { client: f.client });
+    const select = f.calls.find((c) => c[0] === "select");
+    const cols = String(select?.[1]).split(",").map((c) => c.trim());
+    expect(cols).toEqual([
+      "id", "slug", "title", "description", "price_retail", "currency", "images", "category", "inventory", "warehouse",
+      "delivery_min_days", "delivery_max_days", "created_at", "title_en", "description_en", "slug_en",
+    ]);
+    if (!r.ok) throw new Error("no ok");
+    expect(r.products[0]).toMatchObject({ title: "Pieza 1", title_en: "Piece 1", slug_en: "piece-1", description_en: null });
+    // Nada interno: ni coste, ni proveedor, ni snapshot, ni muestra.
+    expect(cols.some((c) => /cost|supplier|fx_|shipping|sample|published|weight|status/.test(c))).toBe(false);
+  });
+});
