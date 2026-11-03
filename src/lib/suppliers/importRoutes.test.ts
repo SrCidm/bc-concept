@@ -1,43 +1,24 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, mock, test } from "bun:test";
+import { beforeEach, describe, expect, test } from "bun:test";
+import { supplierRoutes } from "@/lib/api/supplierRoutes";
+import { DEFAULT_MARGIN_PARAMS } from "@/lib/pricing/settings";
+import { SupplierError } from "./errors";
+import { createMockBigBuyAdapter } from "./registry";
+import { cjWithoutKey, requireAdminAs, resolveAs, type Session } from "../../../test/routesKit";
 
 /**
- * Rutas REALES de importación (/api/admin/suppliers/[supplier]/import[/preview])
- * a través del adaptador REAL sobre el MOCK de BigBuy. Con el mock activo el
- * guardado es una simulación: estos tests no pueden escribir en ninguna BD.
- * Solo se sustituye `requireAdmin`/`resolveAdmin` (la guarda real tiene sus tests).
+ * Handlers REALES de importación (/api/admin/suppliers/[supplier]/import[/preview])
+ * a través del adaptador REAL sobre el MOCK de BigBuy, con las dependencias
+ * pasadas a la factoría (sin sustituir módulos ni tocar process.env). Con el mock
+ * el guardado es una simulación: estos tests no pueden escribir en ninguna BD.
  */
 
-let session: "none" | "admin" = "admin";
+let session: Session = "admin";
+/** Escenario de fallo del mock de BigBuy (`BIGBUY_MOCK_FAIL`), solo para este archivo. */
+let mockFail: string | null = null;
 
-mock.module("@/lib/auth/requireAdmin", () => ({
-  resolveAdmin: async () =>
-    session === "admin"
-      ? { ok: true, userId: "u1", email: "yosra@example.com" }
-      : { ok: false, status: 401, code: "unauthenticated", message: "x", email: null },
-  requireAdmin: async () =>
-    session === "admin"
-      ? { ok: true, userId: "u1", email: "yosra@example.com" }
-      : {
-          ok: false,
-          response: new Response(JSON.stringify({ error: { code: "unauthenticated" } }), { status: 401 }),
-        },
-}));
-
-const saved: Record<string, string | undefined> = {};
-beforeAll(() => {
-  for (const k of ["BIGBUY_MOCK", "BIGBUY_MOCK_FAIL", "NODE_ENV"]) saved[k] = process.env[k];
-  process.env.BIGBUY_MOCK = "1";
-  delete process.env.BIGBUY_MOCK_FAIL;
-  (process.env as Record<string, string>).NODE_ENV = "test";
-});
-afterAll(() => {
-  for (const [k, v] of Object.entries(saved)) {
-    if (v === undefined) delete process.env[k];
-    else process.env[k] = v;
-  }
-});
 beforeEach(() => {
   session = "admin";
+  mockFail = null;
 });
 
 const ctx = (supplier: string) => ({ params: { supplier } });
@@ -47,9 +28,19 @@ const post = (body: unknown, headers: Record<string, string> = same) =>
   new Request(url("/x"), { method: "POST", headers, body: typeof body === "string" ? body : JSON.stringify(body) });
 
 async function load() {
-  const save = await import("@/app/api/admin/suppliers/[supplier]/import/route");
-  const preview = await import("@/app/api/admin/suppliers/[supplier]/import/preview/route");
-  return { save, preview };
+  const env = { NODE_ENV: "test", BIGBUY_MOCK: "1", ...(mockFail ? { BIGBUY_MOCK_FAIL: mockFail } : {}) };
+  const r = supplierRoutes({
+    requireAdmin: requireAdminAs(() => session),
+    resolve: resolveAs(() => session),
+    env,
+    getMarginParams: async () => DEFAULT_MARGIN_PARAMS,
+    getAdapter: (id) => {
+      if (id === "bigbuy") return createMockBigBuyAdapter(env);
+      if (id === "cj") return cjWithoutKey();
+      throw new SupplierError("unsupported");
+    },
+  });
+  return { save: r.import, preview: r.importPreview };
 }
 
 const ID = "20001"; // producto del mock con stock en almacén UE explícito
@@ -176,14 +167,10 @@ describe("endurecimiento de las rutas", () => {
   });
 
   test("error del proveedor simulado → código sin detalles", async () => {
-    process.env.BIGBUY_MOCK_FAIL = "unauthorized";
-    try {
-      const { save } = await load();
-      const r = await save.POST(post({ supplierProductId: "20002", priceRetail: 99.9 }), ctx("bigbuy"));
-      expect([502, 429, 503]).toContain(r.status);
-      expect(await r.json()).toEqual({ error: { code: "unauthorized" } });
-    } finally {
-      delete process.env.BIGBUY_MOCK_FAIL;
-    }
+    mockFail = "unauthorized";
+    const { save } = await load();
+    const r = await save.POST(post({ supplierProductId: "20002", priceRetail: 99.9 }), ctx("bigbuy"));
+    expect([502, 429, 503]).toContain(r.status);
+    expect(await r.json()).toEqual({ error: { code: "unauthorized" } });
   });
 });

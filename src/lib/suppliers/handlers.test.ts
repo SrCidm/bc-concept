@@ -1,54 +1,43 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, mock, test } from "bun:test";
+import { afterAll, beforeAll, beforeEach, describe, expect, test } from "bun:test";
+import { supplierRoutes } from "@/lib/api/supplierRoutes";
+import { DEFAULT_MARGIN_PARAMS } from "@/lib/pricing/settings";
+import { createBigBuyAdapter } from "./bigbuy";
 import { INFO, IMAGES, PRODUCTS, STOCK } from "./bigbuy/__fixtures__/bigbuy";
+import type { CredentialStore } from "./credentials";
+import { SupplierError } from "./errors";
+import { cjWithoutKey, requireAdminAs, resolveAs, type Session } from "../../../test/routesKit";
 
 /**
- * Prueba los Route Handlers REALES de /api/admin/** con dos sustituciones:
- *   · requireAdmin  → controlado por el test (la guarda real tiene sus propios tests)
- *   · credenciales  → almacén en memoria (no se toca Supabase)
- * y el adaptador real hablando con un servidor HTTP local que imita a BigBuy.
+ * Prueba los handlers REALES de /api/admin/suppliers/** creados con la factoría
+ * y sus dependencias pasadas directamente (sin sustituir módulos):
+ *   · sesión → controlada por el test (la guarda real tiene sus propios tests)
+ *   · credenciales → almacén en memoria (no se toca Supabase)
+ * y el adaptador real de BigBuy hablando con un servidor HTTP local que imita a BigBuy.
  */
 
 const API_KEY = "bb_ROUND_TRIP_KEY_must_never_be_returned_9f8e7d";
 
-let session: "none" | "admin" = "admin";
+let session: Session = "admin";
 const store = new Map<string, string>();
 /** Key que el "proveedor" (servidor mock) acepta. */
 let acceptedKey = API_KEY;
 
-mock.module("@/lib/auth/requireAdmin", () => ({
-  // `listAdminCatalog` (que usa la ruta de productos) re-comprueba la sesión con resolveAdmin.
-  resolveAdmin: async () =>
-    session === "admin"
-      ? { ok: true, userId: "u1", email: "yosra@example.com" }
-      : { ok: false, status: 401, code: "unauthenticated", message: "x", email: null },
-  requireAdmin: async () =>
-    session === "admin"
-      ? { ok: true, userId: "u1", email: "yosra@example.com" }
-      : {
-          ok: false,
-          response: new Response(JSON.stringify({ error: { code: "unauthenticated" } }), {
-            status: 401,
-          }),
-        },
-}));
-
-mock.module("@/lib/suppliers/credentials", () => ({
-  resolveApiKey: async (s: string) => store.get(s) ?? process.env.BIGBUY_API_KEY ?? null,
-  getCredentialStatus: async (s: string) =>
-    store.has(s)
-      ? { configured: true, source: "db", updatedAt: "2026-10-07T10:00:00.000Z" }
-      : { configured: false, source: "none", updatedAt: null },
-  setApiKey: async (s: string, k: string) => {
+const credentials: CredentialStore = {
+  get: async (s) => (store.has(s) ? { apiKey: store.get(s) as string, updatedAt: "2026-10-07T10:00:00.000Z" } : null),
+  setApiKey: async (s, k) => {
     store.set(s, k);
     return { updatedAt: "2026-10-07T10:00:00.000Z" };
   },
-  deleteApiKey: async (s: string) => {
+  delete: async (s) => {
     store.delete(s);
   },
-  createSupabaseTokenStore: () => ({ load: async () => null, save: async () => {} }),
-}));
+};
+
+/** Los mismos parámetros que antes llegaban por MARGIN_* (sin tocar el entorno del proceso). */
+const PARAMS = { ...DEFAULT_MARGIN_PARAMS, vatPct: 21, shippingCost: 4, stripePct: 1.5, stripeFixed: 0.25, returnsBufferPct: 3, targetMinPct: 15, targetMaxPct: 35 };
 
 let server: ReturnType<typeof Bun.serve>;
+let base = "";
 
 beforeAll(() => {
   server = Bun.serve({
@@ -77,23 +66,11 @@ beforeAll(() => {
       }
     },
   });
-  process.env.BIGBUY_API_BASE = `http://localhost:${server.port}`;
-  Object.assign(process.env, {
-    MARGIN_VAT_PCT: "21",
-    MARGIN_SHIPPING_EUR: "4",
-    MARGIN_STRIPE_PCT: "1.5",
-    MARGIN_STRIPE_FIXED_EUR: "0.25",
-    MARGIN_RETURNS_BUFFER_PCT: "3",
-    MARGIN_TARGET_MIN_PCT: "15",
-    MARGIN_TARGET_MAX_PCT: "35",
-  });
-  delete process.env.BIGBUY_API_KEY;
+  base = `http://localhost:${server.port}`;
 });
 
 afterAll(() => {
   server.stop(true);
-  delete process.env.BIGBUY_API_BASE;
-  for (const k of Object.keys(process.env)) if (k.startsWith("MARGIN_")) delete process.env[k];
 });
 
 beforeEach(() => {
@@ -102,16 +79,25 @@ beforeEach(() => {
   store.clear();
 });
 
-const ctx = (supplier: string, id?: string) => ({ params: id ? { supplier, id } : { supplier } });
+const ctx = (supplier: string, id?: string) => ({ params: { supplier, id: id ?? "" } });
 const url = (path: string) => `http://localhost:3000${path}`;
 const sameOrigin = { origin: "http://localhost:3000", host: "localhost:3000", "content-type": "application/json" };
 
-async function load() {
-  const status = await import("@/app/api/admin/suppliers/[supplier]/status/route");
-  const products = await import("@/app/api/admin/suppliers/[supplier]/products/route");
-  const product = await import("@/app/api/admin/suppliers/[supplier]/products/[id]/route");
-  const creds = await import("@/app/api/admin/suppliers/[supplier]/credentials/route");
-  return { status, products, product, creds };
+/** `bigbuyBase`: otra dirección para el proveedor (p. ej. uno apagado), sin tocar el servidor compartido. */
+async function load(bigbuyBase?: string) {
+  const r = supplierRoutes({
+    requireAdmin: requireAdminAs(() => session),
+    resolve: resolveAs(() => session),
+    credentials,
+    env: {}, // ni keys de entorno ni mock: solo lo que el test guarda
+    getMarginParams: async () => PARAMS,
+    getAdapter: (id) => {
+      if (id === "bigbuy") return createBigBuyAdapter({ baseUrl: bigbuyBase ?? base, getApiKey: async () => store.get("bigbuy") ?? null });
+      if (id === "cj") return cjWithoutKey();
+      throw new SupplierError("unsupported");
+    },
+  });
+  return { status: r.status, products: r.products, product: r.product, creds: r.credentials };
 }
 
 describe("401 sin sesión en TODAS las rutas (la guarda va primero)", () => {
@@ -241,19 +227,16 @@ describe("admin autenticada", () => {
   });
 
   test("proveedor caído → 502/504 genérico (sin host ni error crudo)", async () => {
-    const { products } = await load();
+    // Un proveedor propio que "desaparece": el servidor compartido sigue vivo para el resto.
+    const dead = Bun.serve({ port: 0, fetch: () => new Response("{}") });
+    const deadBase = `http://localhost:${dead.port}`;
+    dead.stop(true);
+    const { products } = await load(deadBase);
     store.set("bigbuy", API_KEY);
-    acceptedKey = API_KEY;
-    const previous = process.env.BIGBUY_API_BASE;
-    server.stop(true); // el proveedor "desaparece"
-    try {
-      const r = await products.GET(new Request(url("/x")), ctx("bigbuy"));
-      expect([502, 504]).toContain(r.status);
-      const text = await r.text();
-      expect(text).not.toContain("localhost");
-      expect(text).not.toContain(API_KEY);
-    } finally {
-      process.env.BIGBUY_API_BASE = previous;
-    }
+    const r = await products.GET(new Request(url("/x")), ctx("bigbuy"));
+    expect([502, 504]).toContain(r.status);
+    const text = await r.text();
+    expect(text).not.toContain("localhost");
+    expect(text).not.toContain(API_KEY);
   });
 });

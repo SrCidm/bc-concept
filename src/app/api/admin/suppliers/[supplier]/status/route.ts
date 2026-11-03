@@ -1,34 +1,9 @@
-import { requireAdmin } from "@/lib/auth/requireAdmin";
-import { adminErrorResponse, jsonNoStore } from "@/lib/api/admin";
-import { getCredentialStatus } from "@/lib/suppliers/credentials";
-import { SupplierError } from "@/lib/suppliers/errors";
-import { getMockFailure, getSupplierAdapter, isCatalogMock, parseSupplierId } from "@/lib/suppliers/registry";
+import { supplierRoutes } from "@/lib/api/supplierRoutes";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+/** CJ: llamadas con ~2 s de cola entre ellas, más token y reintentos si limita. */
 export const maxDuration = 60;
 
-/** Estado de la credencial del proveedor. NUNCA devuelve la API key. */
-export async function GET(_req: Request, { params }: { params: { supplier: string } }) {
-  const admin = await requireAdmin();
-  if (!admin.ok) return admin.response;
-
-  try {
-    const id = parseSupplierId(params.supplier);
-    if (!id) throw new SupplierError("not_found");
-    const adapter = getSupplierAdapter(id);
-
-    // Con el mock activo (solo fuera de producción) el estado lo decide el adaptador simulado.
-    const mock = isCatalogMock(id);
-    const status = mock
-      ? { configured: getMockFailure() !== "not_configured", source: "none" as const, updatedAt: null }
-      : await getCredentialStatus(id);
-    const auth = status.configured
-      ? await adapter.auth()
-      : ({ ok: false, code: "not_configured" } as const);
-
-    return jsonNoStore({ supplier: id, ...status, auth, mock });
-  } catch (e) {
-    return adminErrorResponse(e);
-  }
-}
+/** Estado de la conexión con el proveedor. Lógica en lib/api/supplierRoutes.ts. */
+export const { GET } = supplierRoutes().status;

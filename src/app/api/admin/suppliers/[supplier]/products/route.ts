@@ -1,42 +1,9 @@
-import { requireAdmin } from "@/lib/auth/requireAdmin";
-import { adminErrorResponse, jsonNoStore, parseProductsQuery } from "@/lib/api/admin";
-import { listAdminCatalog } from "@/lib/admin/catalog";
-import { SupplierError } from "@/lib/suppliers/errors";
-import { parseSupplierId } from "@/lib/suppliers/registry";
+import { supplierRoutes } from "@/lib/api/supplierRoutes";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-/** CJ: hasta 3 llamadas con ~2 s entre ellas, más reintentos si limita. */
+/** CJ: llamadas con ~2 s de cola entre ellas, más token y reintentos si limita. */
 export const maxDuration = 60;
 
-/**
- * Catálogo del proveedor para la admin. El DTO incluye coste y margen: solo
- * llega aquí tras requireAdmin (la regla #1 protege el storefront público).
- * `listAdminCatalog` vuelve a comprobar la sesión por su cuenta (es la misma
- * función que usa el panel).
- */
-export async function GET(req: Request, { params }: { params: { supplier: string } }) {
-  const admin = await requireAdmin();
-  if (!admin.ok) return admin.response;
-
-  try {
-    const id = parseSupplierId(params.supplier);
-    if (!id) throw new SupplierError("not_found");
-
-    const q = parseProductsQuery(new URL(req.url).searchParams);
-    const result = await listAdminCatalog({ ...q, supplier: id });
-    if (!result.ok) {
-      if (result.code === "unauthenticated" || result.code === "forbidden") {
-        // La sesión caducó entre la guarda y la consulta: mismo contrato que requireAdmin.
-        return jsonNoStore(
-          { error: { code: result.code, message: "Sesión no válida." } },
-          result.code === "unauthenticated" ? 401 : 403
-        );
-      }
-      throw new SupplierError(result.code);
-    }
-    return jsonNoStore(result.data);
-  } catch (e) {
-    return adminErrorResponse(e);
-  }
-}
+/** Catálogo del proveedor (con coste, solo admin). Lógica en lib/api/supplierRoutes.ts. */
+export const { GET } = supplierRoutes().products;

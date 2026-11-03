@@ -1,58 +1,41 @@
-import { beforeEach, describe, expect, mock, test } from "bun:test";
+import { beforeEach, describe, expect, test } from "bun:test";
+import { settingsRoutes } from "@/lib/api/settingsRoutes";
+import { createDbMarginSource, createMemoryMarginSettingsStore } from "@/lib/pricing/settings";
+import type { MarginSettingsStore } from "@/lib/pricing/settingsStore";
+import { requireAdminAs, resolveAs, type Session } from "../../../test/routesKit";
 
 /**
- * Rutas REALES de ajustes de margen (/api/admin/settings/margin[/preview]).
- * Se sustituyen `requireAdmin`/`resolveAdmin` y el almacén de margin_settings
- * (en memoria, de solo inserción): nunca se toca la BD real.
+ * Handlers REALES de ajustes de margen (/api/admin/settings/margin[/preview]),
+ * creados con la factoría: la sesión y el almacén de margin_settings (en
+ * memoria, de solo inserción) se pasan directamente. Nunca se toca la BD real
+ * ni se sustituye ningún módulo.
  */
 
-let session: "none" | "admin" | "forbidden" = "admin";
-const inserted: Array<{ values: Record<string, number>; createdBy: string; note: string | null }> = [];
-const calls: string[] = [];
-
-mock.module("@/lib/auth/requireAdmin", () => ({
-  resolveAdmin: async () =>
-    session === "admin"
-      ? { ok: true, userId: "u1", email: "yosra@example.com" }
-      : session === "forbidden"
-        ? { ok: false, status: 403, code: "forbidden", message: "x", email: "otro@example.com" }
-        : { ok: false, status: 401, code: "unauthenticated", message: "x", email: null },
-  requireAdmin: async () =>
-    session === "admin"
-      ? { ok: true, userId: "u1", email: "yosra@example.com" }
-      : {
-          ok: false,
-          response: new Response(JSON.stringify({ error: { code: session === "forbidden" ? "forbidden" : "unauthenticated" } }), {
-            status: session === "forbidden" ? 403 : 401,
-          }),
-        },
-}));
-
-mock.module("@/lib/pricing/settingsStore", () => ({
-  supabaseMarginSettingsStore: {
-    latest: async () => {
-      calls.push("latest");
-      const r = inserted[inserted.length - 1];
-      return r ? { id: inserted.length, values: r.values, createdBy: r.createdBy, createdAt: "2026-10-20T10:00:00.000Z", note: r.note } : null;
-    },
-    history: async () => {
-      calls.push("history");
-      return inserted
-        .map((r, i) => ({ id: i + 1, values: r.values, createdBy: r.createdBy, createdAt: "2026-10-20T10:00:00.000Z", note: r.note }))
-        .reverse();
-    },
-    insert: async (row: { values: Record<string, number>; createdBy: string; note: string | null }) => {
-      calls.push("insert");
-      inserted.push(row);
-      return { id: inserted.length, values: row.values, createdBy: row.createdBy, createdAt: "2026-10-20T10:00:00.000Z", note: row.note };
-    },
-  },
-}));
+let session: Session = "admin";
+let inserted: Array<{ values: Record<string, number>; createdBy: string; note: string | null }> = [];
+let calls: string[] = [];
+let store: MarginSettingsStore;
 
 beforeEach(() => {
   session = "admin";
-  inserted.length = 0;
-  calls.length = 0;
+  inserted = [];
+  calls = [];
+  const inner = createMemoryMarginSettingsStore(() => Date.parse("2026-10-20T10:00:00.000Z"));
+  store = {
+    latest: async () => {
+      calls.push("latest");
+      return inner.latest();
+    },
+    history: async (limit) => {
+      calls.push("history");
+      return inner.history(limit);
+    },
+    insert: async (row) => {
+      calls.push("insert");
+      inserted.push(row as (typeof inserted)[number]);
+      return inner.insert(row);
+    },
+  };
 });
 
 const same = { origin: "http://localhost:3000", host: "localhost:3000", "content-type": "application/json" };
@@ -74,9 +57,14 @@ const VALUES = {
 };
 
 async function load() {
-  const save = await import("@/app/api/admin/settings/margin/route");
-  const preview = await import("@/app/api/admin/settings/margin/preview/route");
-  return { save, preview };
+  const r = settingsRoutes({
+    requireAdmin: requireAdminAs(() => session),
+    resolve: resolveAs(() => session),
+    store,
+    source: createDbMarginSource({ store, env: {} }),
+    storage: "db",
+  });
+  return { save: r.margin, preview: r.marginPreview };
 }
 
 describe("sin sesión de admin no se escribe nada", () => {

@@ -20,6 +20,15 @@ const COST_MODULES = [
   "@/lib/auth/requireAdmin",
 ];
 
+function walkTests(dir: string, out: string[] = []): string[] {
+  for (const name of readdirSync(dir)) {
+    const full = join(dir, name);
+    if (statSync(full).isDirectory()) walkTests(full, out);
+    else if (/\.test\.ts$/.test(name)) out.push(full);
+  }
+  return out;
+}
+
 function walk(dir: string, out: string[] = []): string[] {
   for (const name of readdirSync(dir)) {
     const full = join(dir, name);
@@ -98,26 +107,36 @@ describe("fronteras de la regla #1 (coste solo en superficies admin)", () => {
       const declared = f.src.match(/export async function (GET|POST|PUT|PATCH|DELETE)\b/g) ?? [];
       expect({ route: f.rel, guarded: handlers.length }).toEqual({ route: f.rel, guarded: declared.length });
       // Sin funciones propias, los handlers salen de una factoría vigilada (abajo); nada más.
-      const fromFactory = /export const \{ (?:GET|POST|PUT|PATCH|DELETE)(?:, (?:GET|POST|PUT|PATCH|DELETE))* \} = productRoutes\(\)\.\w+;/.test(f.src);
+      const fromFactory = /export const \{ (?:GET|POST|PUT|PATCH|DELETE)(?:, (?:GET|POST|PUT|PATCH|DELETE))* \} = (?:productRoutes|supplierRoutes|settingsRoutes)\(\)\.\w+;/.test(f.src);
       expect({ route: f.rel, exports: declared.length > 0 || fromFactory }).toEqual({ route: f.rel, exports: true });
       if (fromFactory) expect({ route: f.rel, mixed: declared.length }).toEqual({ route: f.rel, mixed: 0 });
     }
   });
 
-  test("la factoría de rutas de productos llama a requireAdmin en la primera línea de cada handler", () => {
-    const f = files.find((x) => x.rel === "lib/api/productRoutes.ts");
-    expect(f).toBeDefined();
-    const src = f!.src;
-    const declared = src.match(/async (GET|POST|PUT|PATCH|DELETE)\(/g) ?? [];
-    const guardedHandlers = src.match(/async (GET|POST|PUT|PATCH|DELETE)\([^)]*\)\s*\{\s*const admin = await requireAdmin\(\);\s*if \(!admin\.ok\) return admin\.response;/g) ?? [];
-    expect(declared.length).toBe(6);
-    expect(guardedHandlers.length).toBe(declared.length);
-    // Por defecto, la guarda real (los tests pasan la suya, nunca se sustituye el módulo).
-    expect(src).toMatch(/import \{ requireAdmin as defaultRequireAdmin, type AdminAuth \} from "@\/lib\/auth\/requireAdmin";/);
-    expect(src).toMatch(/const requireAdmin = deps\.requireAdmin \?\? \(\(\) => defaultRequireAdmin\(\)\);/);
-    // Y los route.ts usan la factoría sin dependencias (las reales).
-    const users = files.filter((x) => /productRoutes\(\)/.test(x.src) && x.rel.startsWith("app/")).map((x) => x.rel);
-    expect(users.length).toBe(5);
+  test("las factorías de rutas llaman a requireAdmin en la primera línea de cada handler", () => {
+    for (const [factory, handlers, routes] of [
+      ["productRoutes", 6, 5],
+      ["supplierRoutes", 7, 6],
+      ["settingsRoutes", 2, 2],
+    ] as const) {
+      const f = files.find((x) => x.rel === `lib/api/${factory}.ts`);
+      expect({ factory, exists: Boolean(f) }).toEqual({ factory, exists: true });
+      const src = f!.src;
+      const declared = src.match(/async (GET|POST|PUT|PATCH|DELETE)\(/g) ?? [];
+      const guardedHandlers = src.match(/async (GET|POST|PUT|PATCH|DELETE)\([^)]*\)\s*\{\s*const admin = await requireAdmin\(\);\s*if \(!admin\.ok\) return admin\.response;/g) ?? [];
+      expect({ factory, declared: declared.length }).toEqual({ factory, declared: handlers });
+      expect({ factory, guarded: guardedHandlers.length }).toEqual({ factory, guarded: handlers });
+      // Por defecto, la guarda real (los tests pasan la suya, nunca se sustituye el módulo).
+      expect(src).toMatch(/import \{ requireAdmin as defaultRequireAdmin, type AdminAuth(?:, type AdminDecision)? \} from "@\/lib\/auth\/requireAdmin";/);
+      expect(src).toMatch(/const requireAdmin = deps\.requireAdmin \?\? \(\(\) => defaultRequireAdmin\(\)\);/);
+      // Y los route.ts usan la factoría sin dependencias (las reales).
+      const users = files.filter((x) => new RegExp(`${factory}\\(\\)`).test(x.src) && x.rel.startsWith("app/")).map((x) => x.rel);
+      expect({ factory, routes: users.length }).toEqual({ factory, routes });
+    }
+    // Ningún test sustituye la guarda con mock.module (los tests dependerían del orden).
+    const testFiles = walkTests(SRC);
+    const mocked = testFiles.filter((t) => /mock\.module\(\s*["']@\/lib\/auth\/requireAdmin["']/.test(readFileSync(t, "utf8")));
+    expect(mocked).toEqual([]);
   });
 
   test("cada page.tsx del panel llama a requireAdminPage() en su primera línea (el layout NO basta)", () => {
@@ -317,10 +336,7 @@ describe("fronteras de la regla #1 (coste solo en superficies admin)", () => {
       .filter((x) => /@\/lib\/admin\/importProduct/.test(x.src))
       .map((x) => x.rel)
       .sort();
-    expect(importers).toEqual([
-      "app/api/admin/suppliers/[supplier]/import/preview/route.ts",
-      "app/api/admin/suppliers/[supplier]/import/route.ts",
-    ]);
+    expect(importers).toEqual(["lib/api/supplierRoutes.ts"]);
   });
 
   test("margin_settings: solo backend (SELECT + INSERT), solo inserción y sin acceso para anon/authenticated", () => {
@@ -429,11 +445,7 @@ describe("fronteras de la regla #1 (coste solo en superficies admin)", () => {
       .filter((x) => /@\/lib\/admin\/marginSettings["']/.test(x.src))
       .map((x) => x.rel)
       .sort();
-    const allowed = new Set([
-      "app/api/admin/settings/margin/preview/route.ts",
-      "app/api/admin/settings/margin/route.ts",
-      "app/[locale]/(admin)/admin/(panel)/ajustes/page.tsx",
-    ]);
+    const allowed = new Set(["lib/api/settingsRoutes.ts", "app/[locale]/(admin)/admin/(panel)/ajustes/page.tsx"]);
     expect(importers.length).toBeGreaterThan(0);
     for (const rel of importers) expect({ rel, allowed: allowed.has(rel) }).toEqual({ rel, allowed: true });
   });
