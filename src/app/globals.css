@@ -177,3 +177,10 @@ html.lenis body {
     animation: none !important;
   }
 }
+
+/* Publicar (/admin/productos): barra indeterminada mientras el servidor consulta al
+   proveedor (~6 s). Solo se usa con motion-safe; con reduced-motion la barra queda quieta. */
+@keyframes publish-progress {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(300%); }
+}

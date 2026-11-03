@@ -129,9 +129,27 @@ export function marginAt(costs: SnapshotCosts, price: number, params: MarginPara
 
 function marginToday(row: ProductDbRow, price: number, params: MarginParams, fx: FxQuote | null): MarginTodayDTO {
   const costs = costsToday(row, params, fx);
-  if (costs === "fx_unavailable") return { check: null, reason: "fx_unavailable", realShipping: toNum(row.shipping_estimate) !== null };
+  if (costs === "fx_unavailable") {
+    return { check: null, reason: "fx_unavailable", realShipping: toNum(row.shipping_estimate) !== null, fx: null };
+  }
   const check = costs ? marginAt(costs, price, params) : null;
-  return { check: check ? toCheckDTO(check) : null, reason: check ? null : "invalid", realShipping: costs?.shipping != null };
+  const original = toNum(row.cost_original);
+  const fxDTO =
+    row.cost_currency !== "EUR" && fx?.ok && original !== null
+      ? {
+          currency: row.cost_currency,
+          originalCost: worstCaseCost(
+            original,
+            (row.product_variants ?? []).map((v) => toNum(v.cost_original)).filter((n): n is number => n !== null)
+          ),
+          rate: fx.rate,
+          rateDate: fx.rateDate,
+          bufferPct: params.fxBufferPct ?? DEFAULT_FX_BUFFER_PCT,
+          stale: fx.stale,
+          ageDays: fx.ageDays,
+        }
+      : null;
+  return { check: check ? toCheckDTO(check) : null, reason: check ? null : "invalid", realShipping: costs?.shipping != null, fx: fxDTO };
 }
 
 function firstImage(images: unknown): string | null {

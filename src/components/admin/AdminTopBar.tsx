@@ -14,6 +14,7 @@ export async function AdminTopBar({ email }: { email: string }) {
   const t = await getTranslations("admin.topbar");
   const items: { href: StaticHref; label: string }[] = [
     { href: "/admin/import", label: t("nav.import") },
+    { href: "/admin/productos", label: t("nav.products") },
     { href: "/admin/ajustes", label: t("nav.settings") },
   ];
 

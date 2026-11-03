@@ -78,6 +78,7 @@
       "navLabel": "Navegación del panel",
       "nav": {
         "import": "Importar",
+        "products": "Productos",
         "settings": "Ajustes"
       },
       "backToStore": "Volver a la tienda",
@@ -331,7 +332,8 @@
             "draft": "borrador",
             "active": "publicado",
             "archived": "archivado"
-          }
+          },
+          "review": "Revisarlo en Productos"
         },
         "errors": {
           "unauthenticated": "Tu sesión ha caducado. Vuelve a entrar.",
@@ -401,6 +403,237 @@
         "cj": "CJ Dropshipping",
         "bigbuy": "BigBuy",
         "notConnected": "no conectado"
+      }
+    },
+    "products": {
+      "title": "Productos",
+      "intro": "Revisa los borradores importados, déjalos listos y publícalos. Un producto publicado es de solo lectura: para cambiarlo, despublícalo.",
+      "filters": {
+        "label": "Filtrar productos",
+        "status": {
+          "label": "Estado",
+          "all": "Todos",
+          "draft": "Borradores",
+          "active": "Activos"
+        },
+        "supplier": {
+          "label": "Proveedor",
+          "all": "Todos",
+          "cj": "CJ",
+          "bigbuy": "BigBuy"
+        }
+      },
+      "summary": "{total, plural, one {# producto} other {# productos}}",
+      "table": {
+        "label": "Productos",
+        "product": "Producto",
+        "supplier": "Proveedor",
+        "cost": "Coste",
+        "price": "PVP",
+        "margin": "Margen hoy",
+        "category": "Categoría",
+        "sample": "Muestra",
+        "status": "Estado",
+        "noImage": "Sin imagen",
+        "noFx": "Sin tipo de cambio",
+        "noMargin": "—",
+        "averageShipping": "con envío medio",
+        "belowMin": "bajo el mínimo"
+      },
+      "status": {
+        "draft": "Borrador",
+        "active": "Activo",
+        "archived": "Archivado"
+      },
+      "sample": {
+        "yes": "Verificada",
+        "no": "Pendiente"
+      },
+      "categoryNone": "Sin categoría",
+      "empty": {
+        "title": "Aún no hay productos",
+        "body": "Los productos que importes desde «Importar» aparecen aquí como borradores, listos para revisarlos y publicarlos.",
+        "cta": "Ir a Importar",
+        "filteredTitle": "Ningún producto con estos filtros",
+        "filteredBody": "Prueba con otro estado o proveedor.",
+        "clear": "Quitar filtros"
+      },
+      "error": {
+        "title": "No se han podido cargar los productos",
+        "body": "Inténtalo de nuevo en unos segundos.",
+        "retry": "Reintentar",
+        "invalidQuery": "El filtro de la dirección no es válido.",
+        "reset": "Ver todos"
+      },
+      "edit": {
+        "back": "Productos",
+        "reference": "{supplier} · ref. {id}",
+        "readOnly": "Publicado: es de solo lectura. Despublícalo para editar textos, categoría o PVP.",
+        "notFoundTitle": "Este producto ya no existe",
+        "notFoundBody": "Puede que se haya descartado. Vuelve al listado.",
+        "texts": {
+          "title": "Textos",
+          "es": "Español",
+          "esHint": "Es lo que se publica.",
+          "en": "Inglés (opcional)",
+          "enHint": "Si lo dejas vacío, la tienda en inglés muestra el texto en español.",
+          "titleLabel": "Título",
+          "descriptionLabel": "Descripción",
+          "titleEnLabel": "Título en inglés",
+          "descriptionEnLabel": "Descripción en inglés",
+          "counter": "{n} / {max}",
+          "supplier": "Texto original del proveedor",
+          "supplierHint": "Solo de referencia: no se publica tal cual.",
+          "supplierEmpty": "El proveedor no dio descripción."
+        },
+        "validation": {
+          "title": "El título debe tener entre 3 y 140 caracteres.",
+          "titleEn": "El título en inglés debe tener entre 3 y 140 caracteres, o quedar vacío.",
+          "description": "La descripción admite como mucho 5.000 caracteres.",
+          "price": "Introduce un precio válido, por ejemplo 39,90."
+        },
+        "pricing": {
+          "title": "Categoría y precio",
+          "category": "Categoría",
+          "price": "PVP (IVA incluido)",
+          "marginTitle": "Margen de hoy",
+          "note": "Con el coste y el flete guardados, al tipo de cambio y con los ajustes de hoy. Al publicar se vuelve a pedir el producto al proveedor.",
+          "noteAverage": "Este proveedor no da flete por pieza: el envío es la media de los ajustes.",
+          "noFx": "No hay un tipo de cambio reciente: ahora no se puede calcular el margen.",
+          "invalid": "No se puede calcular el margen con estos datos.",
+          "calculating": "Calculando…",
+          "ok": "Margen correcto: {pct} % (mínimo {min} %).",
+          "below": "Por debajo del mínimo ({min} %): con este PVP no se puede publicar.",
+          "minPrice": "PVP mínimo: {price}",
+          "useMin": "Usar el mínimo",
+          "unreachable": "Con los ajustes actuales el mínimo no se alcanza a ningún precio."
+        },
+        "save": {
+          "button": "Guardar cambios",
+          "saving": "Guardando…",
+          "saved": "Cambios guardados.",
+          "dirty": "Hay cambios sin guardar.",
+          "clean": "Todo guardado.",
+          "discardChanges": "Deshacer cambios"
+        },
+        "sample": {
+          "title": "Muestra",
+          "label": "Verificado con muestra",
+          "notesLabel": "Qué se comprobó",
+          "notesHint": "Obligatorio, de 10 a 1.000 caracteres: acabado, medidas, color, embalaje…",
+          "notesInvalid": "Describe qué se comprobó (de 10 a 1.000 caracteres).",
+          "confirm": "Marcar como verificado",
+          "saving": "Guardando…",
+          "verifiedBy": "Verificado por {who} el {date}.",
+          "remove": "Quitar la verificación",
+          "pending": "Aún sin verificar. Pide una muestra y anota aquí lo que compruebes."
+        },
+        "publish": {
+          "title": "Publicación",
+          "draft": "Borrador: no se ve en la tienda.",
+          "active": "Activo desde el {date}: se ve en la tienda.",
+          "slug": "URL",
+          "slugEn": "URL en inglés",
+          "slugNote": "La URL se fija al publicar por primera vez y ya no cambia.",
+          "checklist": "Requisitos",
+          "fresh": "Al publicar se vuelve a comprobar todo con datos frescos del proveedor: stock en la UE, envío a España con plazo, tipo de cambio y margen.",
+          "button": "Comprobar y publicar",
+          "checking": "Comprobando con el proveedor…",
+          "checkingDetail": "Consultando stock, flete y tipo de cambio. Tarda unos segundos.",
+          "saveFirst": "Guarda los cambios antes de publicar: se publica lo guardado.",
+          "blockedTitle": "Aún no se puede publicar",
+          "published": "Publicado. Ya se ve en la tienda.",
+          "unpublish": "Despublicar para editar",
+          "unpublishing": "Despublicando…",
+          "unpublished": "Despublicado: vuelve a ser un borrador.",
+          "goTo": "Ir al campo"
+        },
+        "requirements": {
+          "category": "Categoría elegida",
+          "title": "Título en español revisado",
+          "description": "Descripción en español revisada",
+          "english": "Textos en inglés revisados (si los hay)",
+          "sample": "Verificado con muestra",
+          "met": "Cumplido",
+          "missing": "Pendiente"
+        },
+        "reasons": {
+          "category_missing": "Elige una categoría.",
+          "title_missing": "Escribe el título en español.",
+          "description_missing": "Escribe la descripción en español.",
+          "title_not_reviewed": "El título en español es el del proveedor tal cual: reescríbelo.",
+          "description_not_reviewed": "La descripción en español es la del proveedor tal cual: reescríbela.",
+          "title_en_not_reviewed": "El título en inglés es el del proveedor tal cual: reescríbelo o déjalo vacío.",
+          "description_en_not_reviewed": "La descripción en inglés es la del proveedor tal cual: reescríbela o déjala vacía.",
+          "sample_not_verified": "Falta verificar la muestra y anotar qué se comprobó."
+        },
+        "failures": {
+          "margin_below_min": "Con el PVP guardado el margen es del {pct} % y el mínimo es del {min} %. Sube el PVP y guarda.",
+          "supplier_not_found": "El proveedor ya no tiene este producto.",
+          "not_eu_eligible": "El proveedor ya no tiene stock en un almacén de la UE.",
+          "no_shipping_route": "El proveedor no tiene envío a España para este producto.",
+          "no_delivery_estimate": "El flete no indica plazo de entrega, y la tienda lo necesita para mostrar la entrega.",
+          "fx_too_old": "El último tipo de cambio guardado tiene más de 4 días. Prueba más tarde.",
+          "fx_unavailable": "No hay un tipo de cambio reciente. Prueba más tarde.",
+          "currency_mismatch": "El proveedor da precios en monedas distintas: no se puede calcular el coste.",
+          "stale": "El producto cambió mientras se comprobaba. Vuelve a intentarlo.",
+          "not_draft": "Este producto ya no es un borrador. Recarga la página.",
+          "not_active": "Este producto ya no está publicado. Recarga la página.",
+          "not_found": "Este producto ya no existe. Vuelve al listado.",
+          "rate_limited": "El proveedor está limitando las peticiones. Espera un minuto y vuelve a intentarlo.",
+          "timeout": "El proveedor tarda demasiado en responder. Vuelve a intentarlo.",
+          "upstream": "El proveedor no responde ahora mismo. Vuelve a intentarlo en unos minutos.",
+          "bad_response": "El proveedor ha respondido algo que no se entiende. Vuelve a intentarlo.",
+          "unauthorized": "El proveedor ha rechazado la conexión. Revisa la clave de la API.",
+          "not_configured": "El proveedor no está conectado.",
+          "storage_failed": "No se ha podido guardar. Vuelve a intentarlo.",
+          "invalid_request": "Revisa los campos marcados.",
+          "unauthenticated": "Tu sesión ha caducado. Vuelve a entrar.",
+          "forbidden": "Tu cuenta no tiene acceso.",
+          "network": "No se ha podido conectar. Revisa tu conexión.",
+          "generic": "Algo ha fallado. Vuelve a intentarlo."
+        },
+        "drop": {
+          "title": "El margen ha bajado desde la importación",
+          "body": "Con los datos de hoy el margen es del {to} %; al importarlo era del {from} %. Sigue por encima del mínimo, pero conviene revisarlo.",
+          "confirm": "Publicar igualmente",
+          "cancel": "Revisar antes",
+          "working": "Publicando…"
+        },
+        "discard": {
+          "button": "Descartar borrador",
+          "title": "¿Descartar este borrador?",
+          "body": "Se borran el producto y sus variantes de la base de datos. El historial conserva el registro. No se puede deshacer.",
+          "confirm": "Descartar",
+          "cancel": "Cancelar",
+          "working": "Descartando…"
+        },
+        "history": {
+          "title": "Historial",
+          "empty": "Sin cambios registrados.",
+          "actions": {
+            "import": "Importado",
+            "edit": "Editado",
+            "sample_verified": "Muestra verificada",
+            "sample_unverified": "Verificación retirada",
+            "publish": "Publicado",
+            "unpublish": "Despublicado",
+            "discard": "Descartado"
+          },
+          "fields": {
+            "title": "título",
+            "description": "descripción",
+            "title_en": "título en inglés",
+            "description_en": "descripción en inglés",
+            "category": "categoría",
+            "price_retail": "PVP"
+          },
+          "changed": "Cambió: {fields}.",
+          "price": "PVP: {from} → {to}",
+          "margin": "Margen comprobado: {pct} %.",
+          "marginBefore": "Al importarlo era del {pct} %; la bajada se confirmó.",
+          "marginImport": "Margen al importar: {pct} %."
+        }
       }
     }
   },

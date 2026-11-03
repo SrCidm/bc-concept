@@ -2,7 +2,7 @@
  * Contrato del panel /admin/productos (CLIENTE y servidor). Como `import.types`:
  * sin `server-only` y solo `import type` de otros módulos (lo vigila un test).
  */
-import type { ImportErrorCode, MarginCheckDTO, StoreCategory } from "./import.types";
+import type { ImportErrorCode, ImportFxDTO, MarginCheckDTO, StoreCategory } from "./import.types";
 
 export type ProductStatus = "draft" | "active" | "archived";
 export type ProductSupplier = "cj" | "bigbuy";
@@ -75,6 +75,8 @@ export interface MarginTodayDTO {
   reason: "fx_unavailable" | "invalid" | null;
   /** El envío es el flete real guardado (true) o la media de los ajustes (false). */
   realShipping: boolean;
+  /** Conversión de hoy aplicada al coste original (null si el proveedor cobra en EUR). */
+  fx: ImportFxDTO | null;
 }
 
 export interface AdminProductListItem {

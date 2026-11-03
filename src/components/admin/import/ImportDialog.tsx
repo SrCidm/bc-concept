@@ -2,6 +2,7 @@
 
 import { useEffect, useId, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
+import { Link } from "@/i18n/navigation";
 import {
   IMPORT_ERROR_STATUS,
   STORE_CATEGORIES,
@@ -252,7 +253,12 @@ export function ImportDialog({ product, onClose }: { product: ImportDialogProduc
             </p>
             {result.created && <p className="text-sm text-bc-text-secondary">{t("result.createdBody")}</p>}
             {result.forced && <p className="text-sm text-bc-text-secondary">{t("result.forced")}</p>}
-            <div>
+            <div className="flex flex-wrap gap-3">
+              {result.persisted && result.productId && (
+                <Link href={{ pathname: "/admin/productos/[id]", params: { id: result.productId } }} className={primaryButton}>
+                  {t("result.review")}
+                </Link>
+              )}
               <button type="button" onClick={() => ref.current?.close()} className={secondaryButton}>
                 {t("close")}
               </button>

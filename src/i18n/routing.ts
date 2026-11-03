@@ -31,6 +31,8 @@ export const routing = defineRouting({
     "/admin/login": "/admin/login",
     "/admin/import": "/admin/import",
     "/admin/ajustes": "/admin/ajustes",
+    "/admin/productos": "/admin/productos",
+    "/admin/productos/[id]": "/admin/productos/[id]",
   },
 });
 

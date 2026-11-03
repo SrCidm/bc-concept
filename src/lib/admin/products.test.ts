@@ -202,7 +202,7 @@ describe("margen de hoy (sin llamar al proveedor)", () => {
     const mem = memoryRepo();
     const r = await listAdminProducts({ status: null, supplier: null, page: 1 }, deps(mem.repo, { getFx: async () => ({ ok: false }) }));
     if (!r.ok) throw new Error("no ok");
-    expect(r.data.items[0].margin).toEqual({ check: null, reason: "fx_unavailable", realShipping: true });
+    expect(r.data.items[0].margin).toEqual({ check: null, reason: "fx_unavailable", realShipping: true, fx: null });
   });
 
   test("el listado trae coste, PVP, margen, categoría, muestra y estado", async () => {
